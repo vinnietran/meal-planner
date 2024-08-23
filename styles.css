@@ -9,6 +9,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    text-align: center;
 }
 
 .container {
@@ -16,20 +17,23 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     padding: 20px;
-    max-width: 600px;
+    max-width: 100%;
     width: 100%;
+    box-sizing: border-box;
 }
 
 h1 {
-    text-align: center;
     color: #333333;
     margin-bottom: 20px;
+    font-size: 24px;
+    line-height: 1.2;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
+    table-layout: fixed; /* Makes columns equal width */
 }
 
 thead {
@@ -39,8 +43,9 @@ thead {
 
 th, td {
     text-align: left;
-    padding: 12px;
+    padding: 10px;
     border: 1px solid #ddd;
+    word-wrap: break-word; /* Ensures text breaks within cells */
 }
 
 th {
@@ -68,43 +73,58 @@ td[contenteditable="true"]:focus {
     outline: none;
 }
 
-#clear-week {
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap; /* Ensure buttons wrap on small screens */
+}
+
+button {
+    flex: 1; /* Make buttons equal width */
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+    width: 100%;
+    max-width: 48%; /* Max width of 48% so two buttons fit on one line on larger screens */
+}
+
+button#clear-week {
     background-color: #ff4c4c;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    width: 100%;
 }
 
-#save-week {
-    background-color: green;
-    padding-bottom: 100px;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    width: 100%;
-}
-
-#clear-week:hover {
+button#clear-week:hover {
     background-color: #ff1a1a;
 }
 
-@media (max-width: 600px) {
-    table, th, td {
-        font-size: 12px;
-    }
+button#save-week {
+    background-color: green;
+}
 
+button:hover {
+    opacity: 0.9;
+}
+
+@media (max-width: 600px) {
     h1 {
         font-size: 20px;
     }
 
-    #clear-week {
+    table, th, td {
+        font-size: 12px;
+        padding: 8px;
+    }
+
+    button {
         font-size: 14px;
+    }
+
+    .button-container {
+        flex-direction: column; /* Stack buttons on top of each other on small screens */
     }
 }

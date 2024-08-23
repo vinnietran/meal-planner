@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <h1>The Tranquillo's Weekly Meal Planner</h1>
-        <div id="message" style="display:none; padding: 10px; background-color: #4CAF50; color: white;"></div>
+        <div id="message" style="display:none; padding: 10px; background-color: #4CAF50; color: white; text-align: center;"></div>
         <table id="meal-table">
             <thead>
                 <tr>
@@ -22,8 +22,10 @@
                 <!-- Rows will be generated dynamically here -->
             </tbody>
         </table>
-        <button id="save-week">Save Meal Plan</button>
-        <button id="clear-week">Clear Week</button>
+        <div class="button-container">
+            <button id="save-week">Save Meal Plan</button>
+            <button id="clear-week">Clear Week</button>
+        </div>
     </div>
     <script src="app.js"></script>
 </body>
