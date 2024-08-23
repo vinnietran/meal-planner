@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
             day.setDate(monday.getDate() + i);
             const formattedDate = formatDate(day);
             const dayName = getDayName(day);
-            weekDays.push(`${formattedDate} - ${dayName}`);
+            weekDays.push(`${dayName}`);
         }
         return weekDays;
     }
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
     generateTable();
 
     const saveButton = document.getElementById('save-week');
-    const apiUrl = 'https://script.google.com/macros/s/AKfycbyrn2n0m2CIbvCLTngM5-PeKEnonF11Ck_qMmmJMQeRMUxLE2cL10ZBObYnKdeIoagR/exec'; // Replace with your Apps Script URL
+    const apiUrl = 'https://script.google.com/macros/s/AKfycbyWV-bYxWJwg4O9QzL2CFqEBHQ72XPPUm_7AJIjrGLNJBJFor-G_AQC29O9hLFN2nK-/exec'; // Replace with your Apps Script URL
 
     function loadMealPlan() {
         console.log('Loading meal plan...');
@@ -71,7 +71,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 console.log('Meal plan loaded');
-                console.log(data);
                 updateTable(data);
             })
             .catch(error => console.error('Error loading meal plan:', error));
@@ -82,12 +81,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const rows = mealTable.rows;
 
         data.forEach((row, index) => {
-            console.log(row);
-            console.log(index);
             if (rows) {
                 // Only update Lunch and Dinner columns (assumed to be the 2nd and 3rd cells)
-                rows[index].cells[1].textContent = row[0]; // Lunch
-                rows[index].cells[2].textContent = row[1]; // Dinner
+                rows[index].cells[1].textContent = row.lunch; // Lunch
+                rows[index].cells[2].textContent = row.dinner; // Dinner
             }
         });
     }
@@ -95,21 +92,22 @@ document.addEventListener('DOMContentLoaded', function() {
     function saveMealPlan() {
         const data = Array.from(mealTable.rows).map(row => {
             // Only send Lunch and Dinner data to the server
-            return [
-                row.cells[0].textContent, // Date (this will remain unchanged on the server)
-                row.cells[1].textContent, // Lunch
-                row.cells[2].textContent  // Dinner
-            ];
+            return {
+                lunch: row.cells[1].textContent,
+                dinner: row.cells[2].textContent
+            }
         });
 
         fetch(apiUrl, {
             method: 'POST',
+            mode: "no-cors",
             contentType: "application/json",
             body: JSON.stringify(data)
         })
         .then(response => response.text())
         .then(result => {
             console.log('Meal plan saved:', result);
+            showConfirmationMessage("Meal plan saved successfully!");
         })
         .catch(error => console.error('Error saving meal plan:', error));
     }
@@ -117,6 +115,17 @@ document.addEventListener('DOMContentLoaded', function() {
     saveButton.addEventListener('click', saveMealPlan);
 
     loadMealPlan();
+
+    function showConfirmationMessage(message) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.textContent = message;
+        messageDiv.style.display = 'block';
+    
+        // Hide the message after a few seconds
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 3000); // Adjust the timeout duration as needed
+    }
 });
 
 //https://script.google.com/macros/s/AKfycby69G_2EaMBUHSrY2FVq8Xhcngll8NdmwxjcqP4hGn_gmLRiRvUiromeb5jWROwIKZH/exec
