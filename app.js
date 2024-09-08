@@ -51,11 +51,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             mealTable.appendChild(row);
         });
+
+        addLunchCopyLogic(); // Add the event listeners for lunch columns
+        addUrlDetection(); // Add URL detection to all lunch and dinner cells
     }
 
     clearWeekButton.addEventListener('click', function() {
         mealTable.querySelectorAll('td[contenteditable]').forEach(cell => cell.textContent = '');
-        // Add logic to clear the Google Sheet
     });
 
     generateTable();
@@ -64,25 +66,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const apiUrl = 'https://script.google.com/macros/s/AKfycbyWV-bYxWJwg4O9QzL2CFqEBHQ72XPPUm_7AJIjrGLNJBJFor-G_AQC29O9hLFN2nK-/exec'; // Replace with your Apps Script URL
 
     function loadMealPlan() {
-        console.log('Loading meal plan...');
-        fetch(apiUrl, {
-            mode: "cors"
-        })
+        fetch(apiUrl, { mode: "cors" })
             .then(response => response.json())
-            .then(data => {
-                console.log('Meal plan loaded');
-                updateTable(data);
-            })
+            .then(data => updateTable(data))
             .catch(error => console.error('Error loading meal plan:', error));
     }
 
     function updateTable(data) {
-        // Assumes data is in the same order as the table rows
         const rows = mealTable.rows;
-
         data.forEach((row, index) => {
             if (rows) {
-                // Only update Lunch and Dinner columns (assumed to be the 2nd and 3rd cells)
                 rows[index].cells[1].textContent = row.lunch; // Lunch
                 rows[index].cells[2].textContent = row.dinner; // Dinner
             }
@@ -91,7 +84,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function saveMealPlan() {
         const data = Array.from(mealTable.rows).map(row => {
-            // Only send Lunch and Dinner data to the server
             return {
                 lunch: row.cells[1].textContent,
                 dinner: row.cells[2].textContent
@@ -105,15 +97,11 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify(data)
         })
         .then(response => response.text())
-        .then(result => {
-            console.log('Meal plan saved:', result);
-            showConfirmationMessage("Meal plan saved successfully!");
-        })
+        .then(result => showConfirmationMessage("Meal plan saved successfully!"))
         .catch(error => console.error('Error saving meal plan:', error));
     }
 
     saveButton.addEventListener('click', saveMealPlan);
-
     loadMealPlan();
 
     function showConfirmationMessage(message) {
@@ -121,11 +109,63 @@ document.addEventListener('DOMContentLoaded', function() {
         messageDiv.textContent = message;
         messageDiv.style.display = 'block';
     
-        // Hide the message after a few seconds
         setTimeout(() => {
             messageDiv.style.display = 'none';
-        }, 3000); // Adjust the timeout duration as needed
+        }, 3000);
+    }
+
+    // Function to copy lunch entries from Monday to Wednesday/Friday and from Tuesday to Thursday
+    function addLunchCopyLogic() {
+        const rows = Array.from(mealTable.rows);
+
+        // Listen for changes in Monday's lunch
+        const mondayLunchCell = rows[0].cells[1]; // Monday is row 0, lunch is column 1
+        mondayLunchCell.addEventListener('input', function() {
+            const wednesdayLunchCell = rows[2].cells[1]; // Wednesday is row 2
+            const fridayLunchCell = rows[4].cells[1]; // Friday is row 4
+            wednesdayLunchCell.textContent = mondayLunchCell.textContent;
+            fridayLunchCell.textContent = mondayLunchCell.textContent;
+        });
+
+        // Listen for changes in Tuesday's lunch
+        const tuesdayLunchCell = rows[1].cells[1]; // Tuesday is row 1, lunch is column 1
+        tuesdayLunchCell.addEventListener('input', function() {
+            const thursdayLunchCell = rows[3].cells[1]; // Thursday is row 3
+            thursdayLunchCell.textContent = tuesdayLunchCell.textContent;
+        });
+    }
+
+    // Function to detect and format URLs in lunch and dinner columns
+    function addUrlDetection() {
+        const rows = Array.from(mealTable.rows);
+        
+        rows.forEach(row => {
+            const lunchCell = row.cells[1];
+            const dinnerCell = row.cells[2];
+
+            lunchCell.addEventListener('blur', function() {
+                formatUrlIfPresent(lunchCell);
+            });
+
+            dinnerCell.addEventListener('blur', function() {
+                formatUrlIfPresent(dinnerCell);
+            });
+        });
+    }
+
+    // Function to format the text as a hyperlink if a URL is detected
+    function formatUrlIfPresent(cell) {
+        const urlPattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+            '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|' + // domain name
+            '((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+            '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+            '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+            '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+        
+        const text = cell.textContent.trim();
+
+        if (urlPattern.test(text)) {
+            cell.innerHTML = `<a href="${text.startsWith('http') ? text : 'http://' + text}" target="_blank">${text}</a>`;
+        }
     }
 });
-
-//https://script.google.com/macros/s/AKfycby69G_2EaMBUHSrY2FVq8Xhcngll8NdmwxjcqP4hGn_gmLRiRvUiromeb5jWROwIKZH/exec
