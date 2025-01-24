@@ -128,3 +128,36 @@ button:hover {
         flex-direction: column; /* Stack buttons on top of each other on small screens */
     }
 }
+
+.meal-selection {
+    position: relative;
+    margin-top: 20px;
+}
+
+#meal-search {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: none;
+}
+
+.suggestions {
+    position: absolute;
+    width: 100%;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    max-height: 150px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+}
+
+.suggestion-item {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0;
+}
