@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const mealSuggestions = document.getElementById('meal-suggestions');
     const clearWeekButton = document.getElementById('clear-week');
     const saveButton = document.getElementById('save-week');
-    const apiUrl = 'https://script.google.com/macros/s/AKfycbyp2PCWku1kbJjoABsiQpjqs-CQNEnF3SWZIqna7ucOuFZJDA2A817_7cBIkxO2pzu8hQ/exec'; 
+    const apiUrl = 'https://script.google.com/macros/s/AKfycbzokXx-NyG0Ufr4aHVyufSTq0HbL6-_eJjohu27OZKPjY4j9NdZ0HLe7HkD6fu4u4N-Eg/exec'; 
     let meals = [];
     let mealPlan = [];
 
@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const mealPlanResponse = await fetch(`${apiUrl}?action=getMeals`, {mode: 'cors'});
             mealPlan = await mealPlanResponse.json();
             console.log('Meal plan fetched:', mealPlan);
-            
+
+            populateTableWithMealPlan();
         } catch (error) {
             console.error('Error fetching meals:', error);
             meals = JSON.parse(localStorage.getItem('mealList')) || [];
@@ -30,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         mealTable.innerHTML = '';
 
-        weekDays.forEach(day => {
+        weekDays.forEach((day, index) => {
             const row = document.createElement('tr');
 
             const dateCell = document.createElement('td');
@@ -48,6 +49,16 @@ document.addEventListener('DOMContentLoaded', function() {
             row.appendChild(dinnerCell);
 
             mealTable.appendChild(row);
+        });
+    }
+
+    function populateTableWithMealPlan() {
+        const rows = mealTable.rows;
+        mealPlan.forEach((meal, index) => {
+            if (rows[index]) {
+                rows[index].cells[1].textContent = meal.lunch || '';
+                rows[index].cells[2].textContent = meal.dinner || '';
+            }
         });
     }
 
@@ -91,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dinner: row.cells[2].textContent
         }));
 
-        fetch(apiUrl, {
+        fetch(`${apiUrl}?action=saveMeals`, {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
@@ -116,6 +127,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     saveButton.addEventListener('click', saveMealPlan);
-    fetchMeals();
     generateTable();
+    fetchMeals();
 });
