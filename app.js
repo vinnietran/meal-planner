@@ -10,15 +10,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function fetchMeals() {
         try {
+            const mealPlanResponse = await fetch(`${apiUrl}?action=getMeals`, {mode: 'cors'});
+            mealPlan = await mealPlanResponse.json();
+            console.log('Meal plan fetched:', mealPlan);
+
             console.log('Fetching meals...');
             const response = await fetch(apiUrl, { mode: "cors" });
             meals = await response.json();
             console.log('Meals fetched:', meals);
             localStorage.setItem('mealList', JSON.stringify(meals));
-
-            const mealPlanResponse = await fetch(`${apiUrl}?action=getMeals`, {mode: 'cors'});
-            mealPlan = await mealPlanResponse.json();
-            console.log('Meal plan fetched:', mealPlan);
 
             populateTableWithMealPlan();
         } catch (error) {
@@ -54,13 +54,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function populateTableWithMealPlan() {
         const rows = mealTable.rows;
+        const storedMeals = JSON.parse(localStorage.getItem('mealList')) || [];
+    
         mealPlan.forEach((meal, index) => {
             if (rows[index]) {
-                rows[index].cells[1].textContent = meal.lunch || '';
-                rows[index].cells[2].textContent = meal.dinner || '';
+                // Find the matching lunch meal from stored meals
+                const lunchMeal = storedMeals.find(item => item.name === meal.lunch);
+                const lunchDisplay = lunchMeal ? `${meal.lunch} ${lunchMeal.sides}` : meal.lunch || '';
+    
+                // Find the matching dinner meal from stored meals
+                const dinnerMeal = storedMeals.find(item => item.name === meal.dinner);
+                const dinnerDisplay = dinnerMeal ? `${meal.dinner} ${dinnerMeal.sides}` : meal.dinner || '';
+    
+                rows[index].cells[1].textContent = lunchDisplay;
+                rows[index].cells[2].textContent = dinnerDisplay;
             }
         });
     }
+    
 
     function openMealSearch(cell) {
         mealSearch.style.display = 'block';
