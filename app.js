@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const mealSuggestions = document.getElementById('meal-suggestions');
     const clearWeekButton = document.getElementById('clear-week');
     const saveButton = document.getElementById('save-week');
-    const apiUrl = 'https://script.google.com/macros/s/AKfycbzokXx-NyG0Ufr4aHVyufSTq0HbL6-_eJjohu27OZKPjY4j9NdZ0HLe7HkD6fu4u4N-Eg/exec'; 
+    const apiUrl = 'https://script.google.com/macros/s/AKfycbxQFuB_PQ43mj86SkfveF6se8anpocPUMOPxV2uUii0d7ipJVdFtvmiq6fLKJ7-K_rKcw/exec'; 
     let meals = [];
     let mealPlan = [];
 
@@ -48,6 +48,10 @@ document.addEventListener('DOMContentLoaded', function() {
             dinnerCell.addEventListener('focus', () => openMealSearch(dinnerCell));
             row.appendChild(dinnerCell);
 
+            const cenzoCell = document.createElement('td');
+            cenzoCell.setAttribute('contenteditable', 'true');
+            row.appendChild(cenzoCell);
+
             mealTable.appendChild(row);
         });
     }
@@ -60,17 +64,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if (rows[index]) {
                 // Find the matching lunch meal from stored meals
                 const lunchMeal = storedMeals.find(item => item.name === meal.lunch);
-                const lunchDisplay = lunchMeal ? `${meal.lunch} ${lunchMeal.sides}` : meal.lunch || '';
+                const lunchDisplay = lunchMeal ? `${meal.lunch}<br><small>${lunchMeal.sides}</small>` : meal.lunch || '';
     
                 // Find the matching dinner meal from stored meals
                 const dinnerMeal = storedMeals.find(item => item.name === meal.dinner);
-                const dinnerDisplay = dinnerMeal ? `${meal.dinner} ${dinnerMeal.sides}` : meal.dinner || '';
+                const dinnerDisplay = dinnerMeal ? `${meal.dinner}<br><small>${dinnerMeal.sides}</small>` : meal.dinner || '';
     
-                rows[index].cells[1].textContent = lunchDisplay;
-                rows[index].cells[2].textContent = dinnerDisplay;
+                rows[index].cells[1].innerHTML = lunchDisplay;
+                rows[index].cells[2].innerHTML = dinnerDisplay;
+
+                if (rows[index].cells.length > 3) {
+                    rows[index].cells[3].textContent = meal.Cenzo || '';
+                }
             }
         });
     }
+    
     
 
     function openMealSearch(cell) {
@@ -110,7 +119,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function saveMealPlan() {
         const data = Array.from(mealTable.rows).map(row => ({
             lunch: row.cells[1].textContent,
-            dinner: row.cells[2].textContent
+            dinner: row.cells[2].textContent,
+            Cenzo: row.cells[3].textContent
         }));
 
         fetch(`${apiUrl}?action=saveMeals`, {
