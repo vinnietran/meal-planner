@@ -40,12 +40,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const lunchCell = document.createElement('td');
             lunchCell.setAttribute('contenteditable', 'true');
-            lunchCell.addEventListener('focus', () => openMealSearch(lunchCell));
+            // Trigger meal search on double-click, allowing free text input on single click
+            lunchCell.addEventListener('dblclick', () => openMealSearch(lunchCell));
             row.appendChild(lunchCell);
 
             const dinnerCell = document.createElement('td');
             dinnerCell.setAttribute('contenteditable', 'true');
-            dinnerCell.addEventListener('focus', () => openMealSearch(dinnerCell));
+            // Trigger meal search on double-click, allowing free text input on single click
+            dinnerCell.addEventListener('dblclick', () => openMealSearch(dinnerCell));
             row.appendChild(dinnerCell);
 
             const cenzoCell = document.createElement('td');
