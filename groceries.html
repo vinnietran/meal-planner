@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grocery List</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <div class="container planner-shell">
+        <header class="hero">
+            <div class="hero-text">
+                <p class="eyebrow">Shopping prep</p>
+                <h1>Grocery List From This Week</h1>
+                <p class="subhead">Auto-built from the meal selections. Counts consolidate repeated ingredients.</p>
+            </div>
+            <div class="nav-actions">
+                <a class="link-button" href="index.html">View Dashboard</a>
+                <a class="link-button secondary" href="planner.html">Open Planner</a>
+                <a class="link-button secondary" href="add-meal.html">Add Meal</a>
+            </div>
+        </header>
+
+        <div id="message" class="toast" role="status" aria-live="polite"></div>
+
+        <div class="planner-grid">
+            <main class="planner-main">
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">Ingredients</p>
+                        <h3>Grocery list</h3>
+                    </div>
+                    <ul id="grocery-list" class="grocery-list"></ul>
+                </div>
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">Meals driving this list</p>
+                        <h3>Weekly selections</h3>
+                    </div>
+                    <div id="meal-summary" class="saved-meal-list"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="groceries.js"></script>
+</body>
+</html>

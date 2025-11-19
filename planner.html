@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan Meals</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <div class="container planner-shell">
+        <header class="hero">
+            <div class="hero-text">
+                <p class="eyebrow">Build the week</p>
+                <h1>Plan Next Week's Meals</h1>
+            </div>
+            <div class="nav-actions">
+                <a class="link-button" href="index.html">View Dashboard</a>
+                <a class="link-button secondary" href="add-meal.html">Add Meal</a>
+                <a class="link-button secondary" href="groceries.html">Groceries</a>
+                <!-- <div class="pill-stack">
+                    <span class="pill">Free text friendly</span>
+                    <span class="pill">Saved meals</span>
+                    <span class="pill">Mobile-first</span>
+                </div> -->
+            </div>
+        </header>
+
+        <div id="message" class="toast" role="status" aria-live="polite"></div>
+
+        <div class="planner-grid">
+            <main class="planner-main">
+                <div class="day-switcher" id="day-switcher"></div>
+                <div id="planner-card"></div>
+                <div class="planner-actions">
+                    <button id="next-day" class="ghost-btn">Advance Day</button>
+                </div>
+                <div class="button-container">
+                    <button id="save-week" class="primary-btn">Save week</button>
+                    <button id="clear-week" class="danger-btn">Clear week</button>
+                </div>
+            </main>
+
+            <aside class="planner-aside">
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <div>
+                            <p class="eyebrow">Saved meals</p>
+                            <h3>Quick fill</h3>
+                        </div>
+                        <small class="muted">Tap a meal to send it to the selected slot.</small>
+                    </div>
+                    <input type="text" id="library-search" class="library-search" placeholder="Filter saved meals...">
+                    <div id="tag-filters" class="filter-chips"></div>
+                    <div id="saved-meal-list" class="saved-meal-list"></div>
+                </div>
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">Tips</p>
+                        <h3>Faster planning</h3>
+                    </div>
+                    <ul class="tip-list">
+                        <li>Select a slot, then tap a saved meal.</li>
+                        <li>Double-tap a slot to open inline search.</li>
+                        <li>Breakfast/Lunch/Dinner separated for Cenzo; Lunch/Dinner for Mom & Dad.</li>
+                        <li>Saving stores locally; backend sync can be added later.</li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+
+    </div>
+    <script src="planner.js"></script>
+</body>
+</html>

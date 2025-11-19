@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Meal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <div class="container planner-shell">
+        <header class="hero">
+            <div class="hero-text">
+                <p class="eyebrow">New recipe</p>
+                <h1>Add a Meal</h1>
+                <p class="subhead">Save a meal with ingredients and the last time you had it.</p>
+            </div>
+            <div class="nav-actions">
+                <a class="link-button" href="index.html">Dashboard</a>
+                <a class="link-button secondary" href="planner.html">Planner</a>
+                <a class="link-button secondary" href="groceries.html">Groceries</a>
+            </div>
+        </header>
+
+        <div id="message" class="toast" role="status" aria-live="polite"></div>
+
+        <div class="mini-panel">
+            <form id="meal-form" class="form-grid">
+                <div class="form-row">
+                    <label for="meal-name">Meal name</label>
+                    <input type="text" id="meal-name" name="mealName" placeholder="e.g., Lemon Chicken" required>
+                </div>
+                <div class="form-row">
+                    <label for="meal-ingredients">Ingredients (comma separated)</label>
+                    <textarea id="meal-ingredients" name="mealIngredients" rows="4" placeholder="Chicken, Lemons, Garlic, Olive Oil" required></textarea>
+                </div>
+                <div class="form-row">
+                    <label for="meal-sides">Sides (comma separated, optional)</label>
+                    <textarea id="meal-sides" name="mealSides" rows="3" placeholder="Mashed potatoes, broccoli, corn"></textarea>
+                </div>
+                <div class="form-row">
+                    <label for="meal-tag">Tag</label>
+                    <select id="meal-tag" name="mealTag" required>
+                        <option value="">Select a tag</option>
+                        <option value="Lunch">Lunch</option>
+                        <option value="Dinner">Dinner</option>
+                        <option value="Cenzo">Cenzo</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="meal-lastHad">Last had (optional)</label>
+                    <input type="date" id="meal-lastHad" name="mealLastHad">
+                </div>
+                <div class="button-container">
+                    <button type="submit" id="submit-meal" class="primary-btn">Save Meal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="add-meal.js"></script>
+</body>
+</html>
