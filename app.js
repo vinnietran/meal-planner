@@ -1,10 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     const cardsContainer = document.getElementById('week-cards');
-    const FUNCTIONS_BASE = ''; // TODO: set your Cloud Functions base URL
+    const FUNCTIONS_BASE = 'https://fetchmealplan-xzur6xnjsa-uc.a.run.app'; // TODO: set your Cloud Functions base URL
     const fetchPlanUrl = `${FUNCTIONS_BASE}/fetchMealPlan`;
     const displayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
-    const storageKey = 'plannerWeekData';
     let weekData = Array(7).fill(null).map(() => ({}));
 
     async function fetchPlan() {
@@ -13,13 +12,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             if (Array.isArray(data.plan) && data.plan.length) {
                 weekData = data.plan;
-                localStorage.setItem(storageKey, JSON.stringify(weekData));
             } else {
-                loadPlanFromLocal();
+                weekData = Array(7).fill(null).map(() => ({}));
             }
         } catch (error) {
-            console.error('Error fetching plan, using local fallback:', error);
-            loadPlanFromLocal();
+            console.error('Error fetching plan:', error);
+            weekData = Array(7).fill(null).map(() => ({}));
         }
         populateCardsWithPlan();
     }
@@ -121,13 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-    }
-
-    function loadPlanFromLocal() {
-        const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        if (stored.length === weekData.length) {
-            weekData = stored;
-        }
     }
 
     function toggleCard(card, button) {
