@@ -1,33 +1,25 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Set your deployed Functions base URL, e.g. https://us-central1-<project>.cloudfunctions.net
     const FUNCTIONS_BASE = ''; // TODO: set this to your Cloud Functions base URL
-    const fetchMealsUrl = `${FUNCTIONS_BASE}/fetchMeals`;
-    const fetchPlanUrl = `${FUNCTIONS_BASE}/fetchMealPlan`;
+    const fetchMealsUrl = `https://fetchmeals-xzur6xnjsa-uc.a.run.app/fetchMeals`;
+    const fetchPlanUrl = `https://fetchmealplan-xzur6xnjsa-uc.a.run.app/fetchMealPlan`;
     const groceryListEl = document.getElementById('grocery-list');
     const mealSummaryEl = document.getElementById('meal-summary');
 
     async function fetchData() {
         try {
-            const mealsResponse = await fetch(`${fetchMealsUrl}`, { mode: 'cors' });
+            const mealsResponse = await fetch(fetchMealsUrl, { mode: 'cors' });
             const meals = await mealsResponse.json();
-            let mealPlan = [];
-            try {
-                const planResp = await fetch(`${fetchPlanUrl}`, {mode: 'cors'});
-                const planData = await planResp.json();
-                mealPlan = Array.isArray(planData.plan) ? planData.plan : [];
-            } catch (e) {
-                mealPlan = JSON.parse(localStorage.getItem('plannerWeekData') || '[]');
-            }
-            localStorage.setItem('mealList', JSON.stringify(meals));
+            const planResp = await fetch(fetchPlanUrl, {mode: 'cors'});
+            const planData = await planResp.json();
+            const mealPlan = Array.isArray(planData.plan) ? planData.plan : [];
 
             buildGroceryList(mealPlan, meals);
             buildMealSummary(mealPlan, meals);
         } catch (error) {
             console.error('Error fetching data:', error);
-            const fallbackMeals = JSON.parse(localStorage.getItem('mealList')) || [];
-            const localPlan = JSON.parse(localStorage.getItem('plannerWeekData') || '[]');
-            buildGroceryList(localPlan, fallbackMeals);
-            buildMealSummary(localPlan, fallbackMeals);
+            buildGroceryList([], []);
+            buildMealSummary([], []);
         }
     }
 
