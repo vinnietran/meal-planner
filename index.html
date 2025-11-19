@@ -7,26 +7,25 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>The Tranquillo's Weekly Meal Planner</h1>
-        <div id="message" style="display:none; padding: 10px; background-color: #4CAF50; color: white; text-align: center;"></div>
-        <table id="meal-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Lunch</th>
-                    <th>Dinner</th>
-                    <th>Cenzo</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Rows will be generated dynamically here -->
-            </tbody>
-        </table>
-        <div class="button-container">
-            <button id="save-week">Save Meal Plan</button>
-            <button id="clear-week">Clear Week</button>
-        </div>
+    <div class="container dashboard-view">
+        <header class="hero">
+            <div class="hero-text">
+                <p class="eyebrow">Weekly lineup</p>
+                <h1>Tranquillo Meal Planner</h1>
+            </div>
+            <!-- <div class="pill-stack">
+                <span class="pill">Mobile-first</span>
+                <span class="pill">Quick search</span>
+                <span class="pill">Sheet syncing</span>
+            </div> -->
+            <div class="nav-actions">
+                <a class="link-button" href="planner.html">Open Planner</a>
+                <a class="link-button secondary" href="add-meal.html">Add Meal</a>
+                <a class="link-button secondary" href="groceries.html">Groceries</a>
+            </div>
+        </header>
+        <div id="message" class="toast" role="status" aria-live="polite"></div>
+        <div id="week-cards" class="cards"></div>
         <div class="meal-selection">
             <input type="text" id="meal-search" placeholder="Search meal...">
             <div id="meal-suggestions" class="suggestions"></div>
