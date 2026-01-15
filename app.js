@@ -1,25 +1,44 @@
 document.addEventListener('DOMContentLoaded', function() {
     const cardsContainer = document.getElementById('week-cards');
     const FUNCTIONS_BASE = 'https://fetchmealplan-xzur6xnjsa-uc.a.run.app'; // TODO: set your Cloud Functions base URL
-    const fetchPlanUrl = `${FUNCTIONS_BASE}/fetchMealPlan`;
+    const fetchPlanUrl = `${FUNCTIONS_BASE}/fetchMealPlan?planType=current`;
+    const rolloverWeekUrl = ''; // TODO: set this to your rolloverWeekIfNeeded URL
     const displayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
-    let weekData = Array(7).fill(null).map(() => ({}));
+    let weekData = createEmptyWeek();
 
     async function fetchPlan() {
         try {
             const response = await fetch(fetchPlanUrl, { mode: "cors" });
             const data = await response.json();
-            if (Array.isArray(data.plan) && data.plan.length) {
-                weekData = data.plan;
-            } else {
-                weekData = Array(7).fill(null).map(() => ({}));
-            }
+            weekData = normalizePlan(data.plan);
         } catch (error) {
             console.error('Error fetching plan:', error);
-            weekData = Array(7).fill(null).map(() => ({}));
+            weekData = createEmptyWeek();
         }
         populateCardsWithPlan();
+    }
+
+    async function rolloverWeekIfNeeded() {
+        if (!rolloverWeekUrl) return;
+        try {
+            await fetch(rolloverWeekUrl, { mode: "cors" });
+        } catch (error) {
+            console.warn('Rollover check failed:', error);
+        }
+    }
+
+    function createEmptyWeek() {
+        return Array.from({length: displayOrder.length}, () => ({}));
+    }
+
+    function normalizePlan(plan) {
+        if (!Array.isArray(plan)) return createEmptyWeek();
+        const normalized = plan.slice(0, displayOrder.length).map((entry) => (
+            entry && typeof entry === 'object' ? entry : {}
+        ));
+        while (normalized.length < displayOrder.length) normalized.push({});
+        return normalized;
     }
 
     function buildDayCard(day) {
@@ -137,7 +156,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    generateCards();
-    fetchPlan();
-    expandTodayCard();
+    async function initializeDashboard() {
+        generateCards();
+        await rolloverWeekIfNeeded();
+        await fetchPlan();
+        expandTodayCard();
+    }
+
+    initializeDashboard();
 });
