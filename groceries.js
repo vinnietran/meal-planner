@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set your deployed Functions base URL, e.g. https://us-central1-<project>.cloudfunctions.net
     const FUNCTIONS_BASE = ''; // TODO: set this to your Cloud Functions base URL
     const fetchMealsUrl = `https://fetchmeals-xzur6xnjsa-uc.a.run.app/fetchMeals`;
-    const fetchPlanUrl = `https://fetchmealplan-xzur6xnjsa-uc.a.run.app/fetchMealPlan`;
+    const fetchPlanUrl = `https://fetchmealplan-xzur6xnjsa-uc.a.run.app/fetchMealPlan?planType=current`;
     const groceryListEl = document.getElementById('grocery-list');
     const mealSummaryEl = document.getElementById('meal-summary');
 

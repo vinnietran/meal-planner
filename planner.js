@@ -1,7 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const storageKey = 'plannerWeekData';
+    const planTypes = ['current', 'next'];
+    const planLabels = {current: 'Current Week', next: 'Next Week'};
+    const planStoragePrefix = 'plannerWeekData:';
+    const activeWeekStorageKey = 'plannerActiveWeekTab';
 
+    const weekSwitcher = document.getElementById('week-switcher');
+    const weekSubhead = document.getElementById('week-subhead');
     const daySwitcher = document.getElementById('day-switcher');
     const plannerCard = document.getElementById('planner-card');
     const librarySearch = document.getElementById('library-search');
@@ -16,12 +21,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const fetchMealsUrl = `https://fetchmeals-xzur6xnjsa-uc.a.run.app/fetchMeals`;
     const fetchPlanUrl = `https://fetchmealplan-xzur6xnjsa-uc.a.run.app/fetchMealPlan`;
     const savePlanUrl = `https://savemealplan-xzur6xnjsa-uc.a.run.app/saveMealPlan`;
+    const rolloverWeekUrl = ''; // TODO: set this to your rolloverWeekIfNeeded URL
 
     let meals = [];
-    let weekData = Array(7).fill(null).map(() => ({}));
     let activeDayIndex = 0;
     let fieldRefs = {};
     let activeTag = 'All';
+    let activePlanType = localStorage.getItem(activeWeekStorageKey);
+    if (!planTypes.includes(activePlanType)) {
+        activePlanType = 'current';
+    }
+
+    const weekDataByType = {
+        current: createEmptyWeek(),
+        next: createEmptyWeek(),
+    };
+    let weekData = weekDataByType[activePlanType];
 
     async function fetchMeals() {
         try {
@@ -35,21 +50,37 @@ document.addEventListener('DOMContentLoaded', () => {
         renderMealLibrary(meals);
     }
 
-    async function fetchPlan() {
+    async function fetchPlan(planType) {
         try {
-            const resp = await fetch(fetchPlanUrl, { mode: 'cors' });
+            const resp = await fetch(`${fetchPlanUrl}?planType=${planType}`, { mode: 'cors' });
             const data = await resp.json();
-            if (Array.isArray(data.plan) && data.plan.length) {
-                weekData = data.plan;
-                localStorage.setItem(storageKey, JSON.stringify(weekData));
-            } else {
-                populateFromStorage();
-            }
-            renderCard();
+            const normalized = normalizePlan(data.plan);
+            setWeekData(planType, normalized);
+            localStorage.setItem(storageKey(planType), JSON.stringify(normalized));
         } catch (err) {
             console.warn('Using local plan fallback', err);
-            populateFromStorage();
+            populateFromStorage(planType);
         }
+    }
+
+    async function rolloverWeekIfNeeded() {
+        if (!rolloverWeekUrl) return null;
+        try {
+            const resp = await fetch(rolloverWeekUrl, { mode: 'cors' });
+            return await resp.json();
+        } catch (error) {
+            console.warn('Rollover check failed', error);
+            return null;
+        }
+    }
+
+    async function initializePlanner() {
+        await rolloverWeekIfNeeded();
+        await Promise.all(planTypes.map(fetchPlan));
+        weekData = weekDataByType[activePlanType];
+        renderWeekTabs();
+        renderDaySwitcher();
+        renderCard();
     }
 
     function sampleMeals() {
@@ -61,6 +92,69 @@ document.addEventListener('DOMContentLoaded', () => {
             { name: 'Salmon & Veg', ingredients: ['Asparagus', 'Couscous'] },
             { name: 'Pancakes', ingredients: ['Berries', 'Maple syrup'] }
         ];
+    }
+
+    function createEmptyWeek() {
+        return Array.from({length: weekDays.length}, () => ({}));
+    }
+
+    function normalizePlan(plan) {
+        if (!Array.isArray(plan)) return createEmptyWeek();
+        const normalized = plan.slice(0, weekDays.length).map((entry) => (
+            entry && typeof entry === 'object' ? entry : {}
+        ));
+        while (normalized.length < weekDays.length) normalized.push({});
+        return normalized;
+    }
+
+    function storageKey(planType) {
+        return `${planStoragePrefix}${planType}`;
+    }
+
+    function setWeekData(planType, plan) {
+        weekDataByType[planType] = normalizePlan(plan);
+        if (planType === activePlanType) {
+            weekData = weekDataByType[planType];
+        }
+    }
+
+    function populateFromStorage(planType) {
+        const stored = JSON.parse(localStorage.getItem(storageKey(planType)) || '[]');
+        if (stored.length) {
+            setWeekData(planType, stored);
+        }
+    }
+
+    function updateWeekSubhead() {
+        if (!weekSubhead) return;
+        weekSubhead.textContent = `Editing: ${planLabels[activePlanType]}`;
+    }
+
+    function renderWeekTabs() {
+        if (!weekSwitcher) return;
+        weekSwitcher.innerHTML = '';
+        planTypes.forEach((planType) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'week-tab';
+            if (planType === activePlanType) btn.classList.add('active');
+            btn.textContent = planLabels[planType];
+            btn.setAttribute('role', 'tab');
+            btn.setAttribute('aria-selected', planType === activePlanType ? 'true' : 'false');
+            btn.addEventListener('click', () => {
+                if (planType === activePlanType) return;
+                stashCurrentCard();
+                activePlanType = planType;
+                localStorage.setItem(activeWeekStorageKey, activePlanType);
+                weekData = weekDataByType[activePlanType];
+                renderWeekTabs();
+                renderDaySwitcher();
+                renderCard();
+                updateWeekSubhead();
+            });
+            weekSwitcher.appendChild(btn);
+        });
+        updateWeekSubhead();
     }
 
     function renderDaySwitcher() {
@@ -90,7 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const header = document.createElement('div');
         header.className = 'card-header';
-        header.innerHTML = `<div class="card-day" id="card-day-label">${weekDays[activeDayIndex]}</div><div class="card-chip">Planning</div>`;
+        header.innerHTML = `
+            <div class="card-day" id="card-day-label">${weekDays[activeDayIndex]}</div>
+            <div class="card-chip">${planLabels[activePlanType]}</div>
+        `;
         card.appendChild(header);
 
         const parents = document.createElement('div');
@@ -186,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function stashCurrentCard() {
+        if (!Object.keys(fieldRefs).length) return;
         Object.entries(fieldRefs).forEach(([key, ref]) => {
             updateWeekDataForField(key, ref.mealEl, ref.sidesEl);
         });
@@ -198,13 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
             [key]: mealEl.textContent.trim(),
             [sidesKey]: sidesEl.textContent.trim()
         };
-    }
-
-    function populateFromStorage() {
-        const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        if (stored.length === weekData.length) {
-            weekData = stored;
-        }
     }
 
     function renderMealLibrary(list) {
@@ -263,9 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function saveWeek() {
         stashCurrentCard();
-        localStorage.setItem(storageKey, JSON.stringify(weekData));
+        localStorage.setItem(storageKey(activePlanType), JSON.stringify(weekData));
         const payload = {
-            weekStart: getCurrentWeekStartISO(),
+            planType: activePlanType,
             plan: weekData,
         };
         try {
@@ -283,7 +374,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearWeek() {
-        weekData = Array(7).fill(null).map(() => ({}));
+        setWeekData(activePlanType, createEmptyWeek());
+        localStorage.setItem(storageKey(activePlanType), JSON.stringify(weekData));
         renderCard();
         showConfirmationMessage('Cleared the week.');
     }
@@ -303,21 +395,13 @@ document.addEventListener('DOMContentLoaded', () => {
     clearWeekButton.addEventListener('click', clearWeek);
     nextDayButton.addEventListener('click', advanceDay);
 
+    populateFromStorage('current');
+    populateFromStorage('next');
+    weekData = weekDataByType[activePlanType];
+    renderWeekTabs();
     renderDaySwitcher();
-    buildCardShell();
-    populateFromStorage();
-    fetchPlan();
+    renderCard();
     fetchMeals();
     renderTagFilters();
-    expandTodayCard();
+    initializePlanner();
 });
-
-function getCurrentWeekStartISO() {
-    const now = new Date();
-    const day = now.getDay(); // 0 Sun
-    const diff = day === 0 ? -6 : 1 - day;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diff);
-    monday.setHours(0, 0, 0, 0);
-    return monday.toISOString().slice(0, 10);
-}

@@ -25,6 +25,47 @@ function startOfWeekISO(dateInput = new Date()) {
   return d.toISOString().slice(0, 10);
 }
 
+function getWeekStarts(dateInput = new Date()) {
+  const thisWeekStart = startOfWeekISO(dateInput);
+  const nextDate = new Date(dateInput);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 7);
+  const nextWeekStart = startOfWeekISO(nextDate);
+  return {thisWeekStart, nextWeekStart};
+}
+
+function getPlanType(req) {
+  const candidate = req.query?.planType || req.query?.scope || req.body?.planType || req.body?.scope;
+  return candidate === "next" ? "next" : "current";
+}
+
+function emptyPlan() {
+  return Array.from({length: 7}, () => ({}));
+}
+
+function normalizePlan(plan) {
+  if (!Array.isArray(plan)) return emptyPlan();
+  const normalized = plan.slice(0, 7).map((entry) => (
+    entry && typeof entry === "object" ? entry : {}
+  ));
+  while (normalized.length < 7) normalized.push({});
+  return normalized;
+}
+
+function weeklyPlanRef(planType) {
+  return db.collection("weeklyPlans").doc(planType);
+}
+
+async function loadLegacyCurrentPlan(weekStartISO) {
+  const exactSnap = await db.collection("mealPlans").doc(weekStartISO).get();
+  if (exactSnap.exists) {
+    return exactSnap.data();
+  }
+
+  const latest = await db.collection("mealPlans").orderBy("updatedAt", "desc").limit(1).get();
+  if (latest.empty) return null;
+  return latest.docs[0].data();
+}
+
 exports.addMeal = onRequest(async (req, res) => {
   if (!withCors(req, res)) return;
   if (req.method !== "POST") {
@@ -84,17 +125,20 @@ exports.saveMealPlan = onRequest(async (req, res) => {
     return res.status(405).json({error: "Method not allowed"});
   }
 
-  const {weekStart, plan} = req.body || {};
-  if (!Array.isArray(plan) || !plan.length) {
+  const planType = getPlanType(req);
+  const {plan: planInput} = req.body || {};
+  if (!Array.isArray(planInput)) {
     return res.status(400).json({error: "plan (array) is required"});
   }
 
-  const weekStartISO = weekStart || startOfWeekISO();
-  const planRef = db.collection("mealPlans").doc(weekStartISO);
+  const {thisWeekStart, nextWeekStart} = getWeekStarts();
+  const weekStartISO = planType === "next" ? nextWeekStart : thisWeekStart;
+  const planRef = weeklyPlanRef(planType);
 
   const existing = await planRef.get();
   const now = FieldValue.serverTimestamp();
   const createdAt = existing.exists && existing.get("createdAt") ? existing.get("createdAt") : now;
+  const plan = normalizePlan(planInput);
 
   await planRef.set({
     weekStart: weekStartISO,
@@ -124,7 +168,64 @@ exports.saveMealPlan = onRequest(async (req, res) => {
   });
   await batch.commit();
 
-  return res.status(200).json({weekStart: weekStartISO, updated: true});
+  return res.status(200).json({weekStart: weekStartISO, updated: true, planType});
+});
+
+exports.rolloverWeekIfNeeded = onRequest(async (req, res) => {
+  if (!withCors(req, res)) return;
+  if (req.method !== "GET" && req.method !== "POST") {
+    return res.status(405).json({error: "Method not allowed"});
+  }
+
+  const {thisWeekStart, nextWeekStart} = getWeekStarts();
+  const currentRef = weeklyPlanRef("current");
+  const nextRef = weeklyPlanRef("next");
+  let rolledOver = false;
+
+  await db.runTransaction(async (tx) => {
+    const [currentSnap, nextSnap] = await Promise.all([
+      tx.get(currentRef),
+      tx.get(nextRef),
+    ]);
+
+    const currentData = currentSnap.exists ? currentSnap.data() : null;
+    const nextData = nextSnap.exists ? nextSnap.data() : null;
+    const currentWeekStart = currentData?.weekStart;
+    const now = FieldValue.serverTimestamp();
+
+    if (!currentSnap.exists || currentWeekStart !== thisWeekStart) {
+      const rolloverPlan = normalizePlan(nextData?.plan);
+      tx.set(currentRef, {
+        weekStart: thisWeekStart,
+        plan: rolloverPlan,
+        createdAt: nextData?.createdAt || now,
+        updatedAt: now,
+      }, {merge: true});
+      tx.set(nextRef, {
+        weekStart: nextWeekStart,
+        plan: emptyPlan(),
+        createdAt: now,
+        updatedAt: now,
+      }, {merge: true});
+      rolledOver = true;
+      return;
+    }
+
+    if (!nextSnap.exists) {
+      tx.set(nextRef, {
+        weekStart: nextWeekStart,
+        plan: emptyPlan(),
+        createdAt: now,
+        updatedAt: now,
+      }, {merge: true});
+    }
+  });
+
+  return res.status(200).json({
+    rolledOver,
+    currentWeekStart: thisWeekStart,
+    nextWeekStart,
+  });
 });
 
 exports.fetchMealPlan = onRequest(async (req, res) => {
@@ -133,23 +234,34 @@ exports.fetchMealPlan = onRequest(async (req, res) => {
     return res.status(405).json({error: "Method not allowed"});
   }
 
-  const {weekStart} = req.query;
-  let snapshot;
-  if (weekStart) {
-    snapshot = await db.collection("mealPlans").doc(weekStart).get();
-  } else {
-    const latest = await db.collection("mealPlans").orderBy("updatedAt", "desc").limit(1).get();
-    snapshot = latest.docs[0];
-  }
+  const planType = getPlanType(req);
+  const {thisWeekStart, nextWeekStart} = getWeekStarts();
+  const expectedWeekStart = planType === "next" ? nextWeekStart : thisWeekStart;
+  const snapshot = await weeklyPlanRef(planType).get();
 
   if (!snapshot || !snapshot.exists) {
-    return res.status(200).json({weekStart: weekStart || startOfWeekISO(), plan: []});
+    if (planType === "current") {
+      const legacyPlan = await loadLegacyCurrentPlan(expectedWeekStart);
+      if (legacyPlan) {
+        const plan = normalizePlan(legacyPlan.plan);
+        const now = FieldValue.serverTimestamp();
+        await weeklyPlanRef("current").set({
+          weekStart: expectedWeekStart,
+          plan,
+          createdAt: legacyPlan.createdAt || now,
+          updatedAt: now,
+        }, {merge: true});
+        return res.status(200).json({weekStart: expectedWeekStart, plan, planType});
+      }
+    }
+    return res.status(200).json({weekStart: expectedWeekStart, plan: emptyPlan(), planType});
   }
 
   const data = snapshot.data();
   return res.status(200).json({
-    weekStart: data.weekStart,
-    plan: data.plan || [],
+    weekStart: data.weekStart || expectedWeekStart,
+    plan: normalizePlan(data.plan),
+    planType,
     updatedAt: data.updatedAt ? data.updatedAt.toDate().toISOString() : null,
     createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
   });
