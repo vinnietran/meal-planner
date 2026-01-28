@@ -1,4 +1,5 @@
 const {onRequest} = require("firebase-functions/v2/https");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -6,6 +7,7 @@ const db = admin.firestore();
 const {FieldValue, Timestamp} = admin.firestore;
 
 const PROJECT_TIME_ZONE = process.env.PROJECT_TIME_ZONE || process.env.PROJECT_TIMEZONE || "UTC";
+const WEEKLY_ROLLOVER_TIME_ZONE = process.env.WEEKLY_ROLLOVER_TIME_ZONE || PROJECT_TIME_ZONE;
 const ADMIN_ROLLOVER_TOKEN = process.env.MANUAL_ROLLOVER_TOKEN || "";
 const WEEKDAY_INDEX = {
   Mon: 1,
@@ -106,6 +108,69 @@ function isPlanEmpty(plan) {
 
 function weeklyPlanRef(planType) {
   return db.collection("weeklyPlans").doc(planType);
+}
+
+async function rolloverWeeklyPlans({requireNextContent = false, timeZone = WEEKLY_ROLLOVER_TIME_ZONE} = {}) {
+  const {thisWeekStart, nextWeekStart} = getWeekStarts(new Date(), timeZone);
+  const currentRef = weeklyPlanRef("current");
+  const nextRef = weeklyPlanRef("next");
+  let rolledOver = false;
+  let nextHasContent = false;
+  let currentWeekStart = null;
+
+  await db.runTransaction(async (tx) => {
+    const [currentSnap, nextSnap] = await Promise.all([
+      tx.get(currentRef),
+      tx.get(nextRef),
+    ]);
+
+    const currentData = currentSnap.exists ? currentSnap.data() : null;
+    const nextData = nextSnap.exists ? nextSnap.data() : null;
+    currentWeekStart = currentData?.weekStart || null;
+    const nextPlan = normalizePlan(nextData?.plan);
+    nextHasContent = !isPlanEmpty(nextPlan);
+    const now = FieldValue.serverTimestamp();
+
+    if (currentWeekStart === thisWeekStart) {
+      if (!nextSnap.exists) {
+        tx.set(nextRef, {
+          weekStart: nextWeekStart,
+          plan: emptyPlan(),
+          createdAt: now,
+          updatedAt: now,
+        }, {merge: true});
+      }
+      return;
+    }
+
+    if (requireNextContent && !nextHasContent) {
+      return;
+    }
+
+    const rolloverPlan = nextHasContent ? nextPlan : emptyPlan();
+    tx.set(currentRef, {
+      weekStart: thisWeekStart,
+      plan: rolloverPlan,
+      createdAt: nextData?.createdAt || now,
+      updatedAt: now,
+    }, {merge: true});
+    tx.set(nextRef, {
+      weekStart: nextWeekStart,
+      plan: emptyPlan(),
+      createdAt: nextData?.createdAt || now,
+      updatedAt: now,
+    }, {merge: true});
+    rolledOver = true;
+  });
+
+  return {
+    rolledOver,
+    thisWeekStart,
+    nextWeekStart,
+    timeZone,
+    currentWeekStart,
+    nextHasContent,
+  };
 }
 
 function requireAdminToken(req, res) {
@@ -237,62 +302,29 @@ exports.saveMealPlan = onRequest(async (req, res) => {
   return res.status(200).json({weekStart: weekStartISO, updated: true, planType});
 });
 
+exports.weeklyRolloverTask = onSchedule({
+  schedule: "1 0 * * 1",
+  timeZone: WEEKLY_ROLLOVER_TIME_ZONE,
+}, async () => {
+  const result = await rolloverWeeklyPlans({
+    requireNextContent: false,
+    timeZone: WEEKLY_ROLLOVER_TIME_ZONE,
+  });
+  console.info("weeklyRolloverTask", result);
+});
+
 exports.rolloverWeekIfNeeded = onRequest(async (req, res) => {
   if (!withCors(req, res)) return;
   if (req.method !== "GET" && req.method !== "POST") {
     return res.status(405).json({error: "Method not allowed"});
   }
 
-  const {thisWeekStart, nextWeekStart, timeZone} = getWeekStarts();
-  const currentRef = weeklyPlanRef("current");
-  const nextRef = weeklyPlanRef("next");
-  let rolledOver = false;
-
-  await db.runTransaction(async (tx) => {
-    const [currentSnap, nextSnap] = await Promise.all([
-      tx.get(currentRef),
-      tx.get(nextRef),
-    ]);
-
-    const currentData = currentSnap.exists ? currentSnap.data() : null;
-    const nextData = nextSnap.exists ? nextSnap.data() : null;
-    const currentWeekStart = currentData?.weekStart;
-    const now = FieldValue.serverTimestamp();
-
-    if (!currentSnap.exists || currentWeekStart !== thisWeekStart) {
-      const nextPlan = normalizePlan(nextData?.plan);
-      const rolloverPlan = isPlanEmpty(nextPlan) ? emptyPlan() : nextPlan;
-      tx.set(currentRef, {
-        weekStart: thisWeekStart,
-        plan: rolloverPlan,
-        createdAt: nextData?.createdAt || now,
-        updatedAt: now,
-      }, {merge: true});
-      tx.set(nextRef, {
-        weekStart: nextWeekStart,
-        plan: emptyPlan(),
-        createdAt: nextData?.createdAt || now,
-        updatedAt: now,
-      }, {merge: true});
-      rolledOver = true;
-      return;
-    }
-
-    if (!nextSnap.exists) {
-      tx.set(nextRef, {
-        weekStart: nextWeekStart,
-        plan: emptyPlan(),
-        createdAt: now,
-        updatedAt: now,
-      }, {merge: true});
-    }
-  });
-
+  const result = await rolloverWeeklyPlans({requireNextContent: false});
   return res.status(200).json({
-    rolledOver,
-    currentWeekStart: thisWeekStart,
-    nextWeekStart,
-    timeZone,
+    rolledOver: result.rolledOver,
+    currentWeekStart: result.thisWeekStart,
+    nextWeekStart: result.nextWeekStart,
+    timeZone: result.timeZone,
   });
 });
 
@@ -303,59 +335,44 @@ exports.manualOneTimeRolloverFix = onRequest(async (req, res) => {
   }
   if (!requireAdminToken(req, res)) return;
 
-  const {thisWeekStart, nextWeekStart, timeZone} = getWeekStarts();
-  const currentRef = weeklyPlanRef("current");
-  const nextRef = weeklyPlanRef("next");
-
-  let action = "noop";
-  let details = {};
-
-  await db.runTransaction(async (tx) => {
-    const [currentSnap, nextSnap] = await Promise.all([
-      tx.get(currentRef),
-      tx.get(nextRef),
-    ]);
-
-    const currentData = currentSnap.exists ? currentSnap.data() : null;
-    const nextData = nextSnap.exists ? nextSnap.data() : null;
-    const currentWeekStart = currentData?.weekStart || null;
-    const nextPlan = normalizePlan(nextData?.plan);
-    const nextHasContent = !isPlanEmpty(nextPlan);
-    const now = FieldValue.serverTimestamp();
-
-    details = {
-      currentWeekStart,
-      nextWeekStart: nextData?.weekStart || null,
-      nextHasContent,
-    };
-
-    if (currentWeekStart === thisWeekStart || !nextHasContent) {
-      return;
-    }
-
-    tx.set(currentRef, {
-      weekStart: thisWeekStart,
-      plan: nextPlan,
-      createdAt: nextData?.createdAt || now,
-      updatedAt: now,
-    }, {merge: true});
-
-    tx.set(nextRef, {
-      weekStart: nextWeekStart,
-      plan: emptyPlan(),
-      createdAt: nextData?.createdAt || now,
-      updatedAt: now,
-    }, {merge: true});
-
-    action = "rolled_over";
-  });
+  const result = await rolloverWeeklyPlans({requireNextContent: true});
+  const action = result.rolledOver
+    ? "rolled_over"
+    : (result.currentWeekStart !== result.thisWeekStart && !result.nextHasContent)
+      ? "skipped_empty_next"
+      : "noop";
 
   return res.status(200).json({
     action,
-    thisWeekStart,
-    nextWeekStart,
-    timeZone,
-    ...details,
+    thisWeekStart: result.thisWeekStart,
+    nextWeekStart: result.nextWeekStart,
+    timeZone: result.timeZone,
+    currentWeekStart: result.currentWeekStart,
+    nextHasContent: result.nextHasContent,
+  });
+});
+
+exports.manualOneTimeRolloverRecovery = onRequest(async (req, res) => {
+  if (!withCors(req, res)) return;
+  if (req.method !== "GET" && req.method !== "POST") {
+    return res.status(405).json({error: "Method not allowed"});
+  }
+  if (!requireAdminToken(req, res)) return;
+
+  const result = await rolloverWeeklyPlans({requireNextContent: true});
+  const action = result.rolledOver
+    ? "rolled_over"
+    : (result.currentWeekStart !== result.thisWeekStart && !result.nextHasContent)
+      ? "skipped_empty_next"
+      : "noop";
+
+  return res.status(200).json({
+    action,
+    thisWeekStart: result.thisWeekStart,
+    nextWeekStart: result.nextWeekStart,
+    timeZone: result.timeZone,
+    currentWeekStart: result.currentWeekStart,
+    nextHasContent: result.nextHasContent,
   });
 });
 
