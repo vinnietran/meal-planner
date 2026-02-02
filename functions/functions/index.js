@@ -304,7 +304,7 @@ exports.saveMealPlan = onRequest(async (req, res) => {
 
 exports.weeklyRolloverTask = onSchedule({
   schedule: "1 0 * * 1",
-  timeZone: WEEKLY_ROLLOVER_TIME_ZONE,
+  timeZone: "America/New_York",
 }, async () => {
   const result = await rolloverWeeklyPlans({
     requireNextContent: false,
