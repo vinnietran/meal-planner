@@ -17,7 +17,10 @@
             </div>
             <div class="nav-actions">
                 <a class="link-button" href="index.html">View Dashboard</a>
+                <a class="link-button secondary" href="meals.html">Meals</a>
                 <a class="link-button secondary" href="add-meal.html">Add Meal</a>
+                <a class="link-button secondary" href="knowledge.html">Knowledge</a>
+                <a class="link-button secondary" href="necessities.html">Necessities</a>
                 <a class="link-button secondary" href="groceries.html">Groceries</a>
                 <!-- <div class="pill-stack">
                     <span class="pill">Free text friendly</span>
@@ -31,6 +34,13 @@
 
         <div class="planner-grid">
             <main class="planner-main">
+                <button id="planning-assistant-open" class="assistant-launch" type="button">
+                    <span>
+                        <small>Use family patterns</small>
+                        <strong>Help Me Plan Next Week</strong>
+                    </span>
+                    <span aria-hidden="true">→</span>
+                </button>
                 <div class="week-switcher" id="week-switcher" role="tablist"></div>
                 <div class="day-switcher" id="day-switcher"></div>
                 <div id="planner-card"></div>
@@ -64,14 +74,79 @@
                     <ul class="tip-list">
                         <li>Select a slot, then tap a saved meal.</li>
                         <li>Double-tap a slot to open inline search.</li>
-                        <li>Breakfast/Lunch/Dinner separated for Cenzo; Lunch/Dinner for Mom & Dad.</li>
-                        <li>Saving stores locally; backend sync can be added later.</li>
+                        <li>Add staples like milk, apples, bananas, or bread on the Necessities screen.</li>
+                        <li>Mom & Dad have lunch, Cenzo has breakfast and lunch, and dinner is shared.</li>
+                        <li>Use Knowledge for preferences and a quick weekly dinner check-in.</li>
                     </ul>
                 </div>
             </aside>
         </div>
 
     </div>
+    <dialog id="planning-assistant-dialog" class="planning-assistant-dialog">
+        <form id="planning-assistant-form" class="planning-assistant-shell">
+            <div class="planning-assistant-head">
+                <div>
+                    <p class="eyebrow">Family planning assistant</p>
+                    <h2>Draft next week</h2>
+                </div>
+                <button id="planning-assistant-close" type="button" class="ghost-btn">Close</button>
+            </div>
+            <p class="helper-note">Choose what next week looks like. The draft uses saved meals, recurring routines, and past planning patterns.</p>
+
+            <fieldset class="assistant-fieldset">
+                <legend>Busy days</legend>
+                <div class="assistant-day-options" data-option-group="busyDays">
+                    <label><input type="checkbox" value="0"> Mon</label>
+                    <label><input type="checkbox" value="1"> Tue</label>
+                    <label><input type="checkbox" value="2"> Wed</label>
+                    <label><input type="checkbox" value="3"> Thu</label>
+                    <label><input type="checkbox" value="4"> Fri</label>
+                    <label><input type="checkbox" value="5"> Sat</label>
+                    <label><input type="checkbox" value="6"> Sun</label>
+                </div>
+            </fieldset>
+
+            <fieldset class="assistant-fieldset">
+                <legend>Eating out</legend>
+                <div class="assistant-day-options" data-option-group="eatingOutDays">
+                    <label><input type="checkbox" value="0"> Mon</label>
+                    <label><input type="checkbox" value="1"> Tue</label>
+                    <label><input type="checkbox" value="2"> Wed</label>
+                    <label><input type="checkbox" value="3"> Thu</label>
+                    <label><input type="checkbox" value="4"> Fri</label>
+                    <label><input type="checkbox" value="5"> Sat</label>
+                    <label><input type="checkbox" value="6"> Sun</label>
+                </div>
+            </fieldset>
+
+            <div class="assistant-settings">
+                <label class="form-row">
+                    <span>Maximum cooking nights</span>
+                    <select id="assistant-max-cooking-nights">
+                        <option value="3">3 nights</option>
+                        <option value="4">4 nights</option>
+                        <option value="5" selected>5 nights</option>
+                        <option value="6">6 nights</option>
+                        <option value="7">7 nights</option>
+                    </select>
+                </label>
+                <label class="assistant-toggle">
+                    <input id="assistant-use-leftovers" type="checkbox" checked>
+                    <span>Use leftovers to reduce cooking</span>
+                </label>
+                <label class="assistant-toggle">
+                    <input id="assistant-preserve-existing" type="checkbox" checked>
+                    <span>Keep meals already entered for next week</span>
+                </label>
+            </div>
+
+            <button id="planning-assistant-generate" type="submit" class="primary-btn assistant-generate">Build My Draft</button>
+            <div id="planning-assistant-status" class="helper-note" role="status" aria-live="polite"></div>
+            <div id="planning-assistant-preview" class="assistant-preview"></div>
+            <button id="planning-assistant-apply" type="button" class="primary-btn assistant-apply" hidden>Use This Draft</button>
+        </form>
+    </dialog>
     <script src="./planner.js"></script>
 </body>
 </html>

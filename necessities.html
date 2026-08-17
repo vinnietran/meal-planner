@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Necessities</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <div class="container planner-shell">
+        <header class="hero">
+            <div class="hero-text">
+                <p class="eyebrow">Staples library</p>
+                <h1>Necessities</h1>
+                <p class="subhead">Save standalone staples like milk, bananas, apples, salt, and other items, then mark only the ones you want included in grocery runs.</p>
+            </div>
+            <div class="nav-actions">
+                <a class="link-button" href="index.html">Dashboard</a>
+                <a class="link-button secondary" href="planner.html">Planner</a>
+                <a class="link-button secondary" href="meals.html">Meals</a>
+                <a class="link-button secondary" href="add-meal.html">Add Meal</a>
+                <a class="link-button secondary" href="knowledge.html">Knowledge</a>
+                <a class="link-button secondary" href="groceries.html">Groceries</a>
+            </div>
+        </header>
+
+        <div id="message" class="toast" role="status" aria-live="polite"></div>
+
+        <div class="planner-grid">
+            <main class="planner-main">
+                <div class="mini-panel">
+                    <form id="necessity-form" class="form-grid">
+                        <div class="split-form-grid">
+                            <div class="form-row">
+                                <label for="necessity-name">Necessity name</label>
+                                <input type="text" id="necessity-name" placeholder="Milk" required>
+                            </div>
+                            <div class="form-row">
+                                <label for="necessity-category">Category</label>
+                                <input type="text" id="necessity-category" placeholder="Dairy, Produce, Pantry">
+                            </div>
+                            <div class="form-row form-row-span">
+                                <label for="necessity-cart-query">Giant Eagle search query</label>
+                                <input type="text" id="necessity-cart-query" placeholder="2 percent milk gallon">
+                            </div>
+                            <div class="form-row">
+                                <label for="necessity-cart-quantity">Cart quantity</label>
+                                <input type="number" id="necessity-cart-quantity" min="1" step="1" value="1">
+                            </div>
+                            <div class="form-row">
+                                <label for="necessity-brand">Preferred brand</label>
+                                <input type="text" id="necessity-brand" placeholder="Organic Valley">
+                            </div>
+                            <div class="form-row">
+                                <label for="necessity-size">Preferred size</label>
+                                <input type="text" id="necessity-size" placeholder="1 gallon">
+                            </div>
+                            <div class="form-row">
+                                <label for="necessity-department">Department</label>
+                                <input type="text" id="necessity-department" placeholder="Dairy, Produce, Pantry">
+                            </div>
+                            <div class="form-row form-row-span">
+                                <label for="necessity-notes">Notes</label>
+                                <textarea id="necessity-notes" rows="3" placeholder="Anything that helps review skipped items or pick the right product"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="necessity-toggles">
+                            <label class="inline-toggle">
+                                <input type="checkbox" id="necessity-allow-substitutes" checked>
+                                <span>Allow substitutes</span>
+                            </label>
+                            <label class="inline-toggle">
+                                <input type="checkbox" id="necessity-is-active" checked>
+                                <span>Include this in grocery runs</span>
+                            </label>
+                        </div>
+
+                        <div class="button-container">
+                            <button type="submit" class="primary-btn">Save Necessity</button>
+                        </div>
+                    </form>
+                </div>
+            </main>
+
+            <aside class="planner-aside">
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <div>
+                            <p class="eyebrow">Saved necessities</p>
+                            <h3>Standalone items</h3>
+                        </div>
+                        <small class="muted">Toggle cart inclusion per item so only selected necessities join the grocery/cart flow.</small>
+                    </div>
+                    <div id="necessity-library" class="saved-meal-list"></div>
+                </div>
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">Examples</p>
+                        <h3>Good fits for this library</h3>
+                    </div>
+                    <ul class="tip-list">
+                        <li>Milk, bananas, apples, eggs, bread, butter.</li>
+                        <li>Staples like salt, pepper, olive oil, flour, and sugar.</li>
+                        <li>Anything you want saved in the library but only pulled into the cart when selected.</li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <script src="./necessities.js"></script>
+</body>
+</html>

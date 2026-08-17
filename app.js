@@ -76,16 +76,23 @@ document.addEventListener('DOMContentLoaded', function() {
         parentsSection.className = 'section';
         parentsSection.appendChild(makeSectionTitle('Mom & Dad'));
         parentsSection.appendChild(makeField('Lunch', 'momLunch'));
-        parentsSection.appendChild(makeField('Dinner', 'momDinner'));
 
         const cenzoSection = document.createElement('div');
         cenzoSection.className = 'section';
         cenzoSection.appendChild(makeSectionTitle("Cenzo"));
         cenzoSection.appendChild(makeField('Breakfast', 'cenzoBreakfast'));
         cenzoSection.appendChild(makeField('Lunch', 'cenzoLunch'));
-        cenzoSection.appendChild(makeField('Dinner', 'cenzoDinner'));
 
-        cardBody.append(parentsSection, cenzoSection);
+        const sharedDinnerSection = document.createElement('div');
+        sharedDinnerSection.className = 'section shared-dinner-section';
+        sharedDinnerSection.appendChild(makeSectionTitle('Shared Dinner'));
+        sharedDinnerSection.appendChild(makeField('Meal', 'dinner'));
+
+        const personalMeals = document.createElement('div');
+        personalMeals.className = 'meal-sections';
+        personalMeals.append(parentsSection, cenzoSection);
+
+        cardBody.append(personalMeals, sharedDinnerSection);
         card.appendChild(cardBody);
         cardsContainer.appendChild(card);
     }
@@ -126,9 +133,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!card || !dayPlan) return;
             card.querySelectorAll('[data-key]').forEach(field => {
                 const key = field.dataset.key;
-                const val = dayPlan[key] || '';
+                const val = getFieldValue(dayPlan, key);
                 const sidesKey = `${key}Sides`;
-                const sides = dayPlan[sidesKey] || '';
+                const sides = getFieldValue(dayPlan, sidesKey);
                 if (val && sides) {
                     field.innerHTML = `${val}<br><small class="muted">${sides}</small>`;
                 } else if (val) {
@@ -138,6 +145,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+    }
+
+    function getFieldValue(dayPlan, key) {
+        if (dayPlan[key]) return dayPlan[key];
+        if (key === 'dinner') return dayPlan.momDinner || dayPlan.cenzoDinner || dayPlan.Cenzo || '';
+        if (key === 'dinnerSides') return dayPlan.momDinnerSides || dayPlan.cenzoDinnerSides || dayPlan.CenzoSides || '';
+        return '';
     }
 
     function toggleCard(card, button) {

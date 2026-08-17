@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meals</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <div class="container planner-shell">
+        <header class="hero">
+            <div class="hero-text">
+                <p class="eyebrow">Meal library</p>
+                <h1>Saved Meals</h1>
+                <p class="subhead">Browse every saved meal and see the full ingredient detail used by planning and automation.</p>
+            </div>
+            <div class="nav-actions">
+                <a class="link-button" href="index.html">Dashboard</a>
+                <a class="link-button secondary" href="planner.html">Planner</a>
+                <a class="link-button secondary" href="add-meal.html">Add Meal</a>
+                <a class="link-button secondary" href="knowledge.html">Knowledge</a>
+                <a class="link-button secondary" href="necessities.html">Necessities</a>
+                <a class="link-button secondary" href="groceries.html">Groceries</a>
+            </div>
+        </header>
+
+        <div id="message" class="toast" role="status" aria-live="polite"></div>
+
+        <div class="planner-grid">
+            <main class="planner-main">
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <div>
+                            <p class="eyebrow">Filters</p>
+                            <h3>Find a meal fast</h3>
+                        </div>
+                        <small id="meal-library-count" class="muted">Loading meals...</small>
+                    </div>
+                    <input type="text" id="meal-library-search" class="library-search" placeholder="Search meal names or ingredients...">
+                    <div id="meal-library-tags" class="filter-chips"></div>
+                </div>
+                <div id="meal-library-grid" class="meal-library-grid"></div>
+            </main>
+
+            <aside class="planner-aside">
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">What you can inspect</p>
+                        <h3>Included metadata</h3>
+                    </div>
+                    <ul class="tip-list">
+                        <li>Meal tag, last had date, and planner sides.</li>
+                        <li>Every ingredient record and its recipe quantity.</li>
+                        <li>Cart query, cart quantity, brand, size, department, notes, and substitute preference.</li>
+                    </ul>
+                </div>
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">Why this screen exists</p>
+                        <h3>Better QA</h3>
+                    </div>
+                    <p class="helper-note">This page is the easiest place to spot bad search terms, missing metadata, or duplicate meals before the next-week cart run.</p>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <dialog id="meal-detail-dialog" class="meal-detail-dialog">
+        <div class="meal-detail-shell">
+            <div class="meal-detail-header">
+                <div>
+                    <p id="meal-detail-tag" class="eyebrow">Meal</p>
+                    <h2 id="meal-detail-name">Meal Details</h2>
+                </div>
+                <div class="meal-detail-actions">
+                    <button type="button" id="meal-detail-edit" class="ghost-btn">Edit Meal</button>
+                    <button type="button" id="meal-detail-close" class="ghost-btn">Close</button>
+                </div>
+            </div>
+            <div class="meta-pills" id="meal-detail-summary"></div>
+            <p id="meal-detail-sides" class="helper-note"></p>
+            <div id="meal-detail-ingredients" class="ingredient-record-list"></div>
+        </div>
+    </dialog>
+    <script src="./meals.js"></script>
+</body>
+</html>

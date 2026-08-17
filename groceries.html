@@ -13,25 +13,43 @@
             <div class="hero-text">
                 <p class="eyebrow">Shopping prep</p>
                 <h1>Grocery List From This Week</h1>
-                <p class="subhead">Auto-built from the meal selections. Counts consolidate repeated ingredients.</p>
+                <p class="subhead">Auto-built from the meal selections and the necessities you marked for cart inclusion. Counts consolidate repeated ingredients.</p>
             </div>
             <div class="nav-actions">
                 <a class="link-button" href="index.html">View Dashboard</a>
                 <a class="link-button secondary" href="planner.html">Open Planner</a>
+                <a class="link-button secondary" href="meals.html">Meals</a>
                 <a class="link-button secondary" href="add-meal.html">Add Meal</a>
+                <a class="link-button secondary" href="knowledge.html">Knowledge</a>
+                <a class="link-button secondary" href="necessities.html">Necessities</a>
             </div>
         </header>
-
-        <div id="message" class="toast" role="status" aria-live="polite"></div>
-
         <div class="planner-grid">
             <main class="planner-main">
                 <div class="mini-panel">
                     <div class="panel-head">
                         <p class="eyebrow">Ingredients</p>
-                        <h3>Grocery list</h3>
+                        <h3>Combined grocery list</h3>
                     </div>
                     <ul id="grocery-list" class="grocery-list"></ul>
+                </div>
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">Necessities</p>
+                        <h3>Necessities selected for this run</h3>
+                    </div>
+                    <p class="helper-note">Use the <a href="necessities.html">Necessities</a> screen to choose which saved items should be included in the grocery cart.</p>
+                    <ul id="necessity-list" class="grocery-list"></ul>
+                </div>
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">Giant Eagle</p>
+                        <h3>Browser helper</h3>
+                    </div>
+                    <p class="helper-note">The Playwright runner reads the live meal plan plus necessities that are marked for cart inclusion, so there is no manual grocery export step in the UI anymore.</p>
+                    <pre class="command-block"><code>npm install
+npm run giant-eagle:cart</code></pre>
+                    <p id="automation-status" class="helper-note">The script opens a real browser window and waits for you to finish login and store selection before it starts adding items.</p>
                 </div>
                 <div class="mini-panel">
                     <div class="panel-head">
@@ -43,6 +61,7 @@
             </main>
         </div>
     </div>
+    <script src="./grocery-utils.js"></script>
     <script src="./groceries.js"></script>
 </body>
 </html>

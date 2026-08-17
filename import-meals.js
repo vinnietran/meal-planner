@@ -8,6 +8,7 @@
  * - Expects the functions `addMeal` endpoint at `${base}/addMeal`.
  * - Only tags “Lunch”, “Dinner”, or “Cenzo” are sent; others are ignored.
  * - Sides and ingredients are split on commas and trimmed; empty entries are dropped.
+ * - Rows without any ingredients are skipped because the structured meal schema requires at least one item.
  */
 
 const DATA = `
@@ -91,11 +92,20 @@ function parseData(raw) {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+    if (!ingredients.length) {
+      console.warn(`Skipping ${name} because it has no ingredients.`);
+      continue;
+    }
     rows.push({
       name,
       tag,
       sides: sides.length ? sides : [],
-      ingredients: ingredients.length ? ingredients : [],
+      ingredientItems: ingredients.map((ingredient) => ({
+        name: ingredient,
+        cartQuery: ingredient,
+        cartQuantity: 1,
+        allowSubstitutes: true,
+      })),
     });
   }
   return rows;
