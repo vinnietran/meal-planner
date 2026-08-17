@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const planLabels = {current: 'Current Week', next: 'Next Week'};
     const planStoragePrefix = 'plannerWeekData:';
     const activeWeekStorageKey = 'plannerActiveWeekTab';
+    const nextWeekCenzoDefaults = [
+        {dayIndex: 1, fields: {cenzoBreakfast: 'Doodlebugs', cenzoLunch: 'Doodlebugs'}},
+        {dayIndex: 3, fields: {cenzoBreakfast: 'Doodlebugs', cenzoLunch: 'Doodlebugs'}},
+    ];
 
     const weekSwitcher = document.getElementById('week-switcher');
     const weekSubhead = document.getElementById('week-subhead');
@@ -15,18 +19,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextDayButton = document.getElementById('next-day');
     const clearWeekButton = document.getElementById('clear-week');
     const saveWeekButton = document.getElementById('save-week');
+    const assistantOpenButton = document.getElementById('planning-assistant-open');
+    const assistantDialog = document.getElementById('planning-assistant-dialog');
+    const assistantCloseButton = document.getElementById('planning-assistant-close');
+    const assistantForm = document.getElementById('planning-assistant-form');
+    const assistantGenerateButton = document.getElementById('planning-assistant-generate');
+    const assistantApplyButton = document.getElementById('planning-assistant-apply');
+    const assistantPreview = document.getElementById('planning-assistant-preview');
+    const assistantStatus = document.getElementById('planning-assistant-status');
 
     // Set your deployed Functions base URL, e.g. https://us-central1-<project>.cloudfunctions.net
     const FUNCTIONS_BASE = ''; // TODO: set this to your Cloud Functions base URL
     const fetchMealsUrl = `https://fetchmeals-xzur6xnjsa-uc.a.run.app/fetchMeals`;
     const fetchPlanUrl = `https://fetchmealplan-xzur6xnjsa-uc.a.run.app/fetchMealPlan`;
     const savePlanUrl = `https://savemealplan-xzur6xnjsa-uc.a.run.app/saveMealPlan`;
+    const suggestPlanUrl = 'https://us-central1-fork-cast-f19a9.cloudfunctions.net/suggestMealPlan';
     const rolloverWeekUrl = ''; // TODO: set this to your rolloverWeekIfNeeded URL
 
     let meals = [];
     let activeDayIndex = 0;
     let fieldRefs = {};
     let activeTag = 'All';
+    let assistantDraft = null;
     let activePlanType = localStorage.getItem(activeWeekStorageKey);
     if (!planTypes.includes(activePlanType)) {
         activePlanType = 'current';
@@ -100,10 +114,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function normalizePlan(plan) {
         if (!Array.isArray(plan)) return createEmptyWeek();
-        const normalized = plan.slice(0, weekDays.length).map((entry) => (
-            entry && typeof entry === 'object' ? entry : {}
-        ));
+        const normalized = plan.slice(0, weekDays.length).map(normalizeDayEntry);
         while (normalized.length < weekDays.length) normalized.push({});
+        return normalized;
+    }
+
+    function normalizeDayEntry(entry) {
+        if (!entry || typeof entry !== 'object') return {};
+        const {
+            momDinner,
+            momDinnerSides,
+            cenzoDinner,
+            cenzoDinnerSides,
+            Cenzo,
+            CenzoSides,
+            ...dayEntry
+        } = entry;
+
+        const dinner = dayEntry.dinner || momDinner || cenzoDinner || Cenzo || '';
+        const dinnerSides = dayEntry.dinnerSides || momDinnerSides || cenzoDinnerSides || CenzoSides || '';
+        if (dinner) dayEntry.dinner = dinner;
+        if (dinnerSides) dayEntry.dinnerSides = dinnerSides;
+        return dayEntry;
+    }
+
+    function applyPlanDefaults(planType, plan) {
+        const normalized = normalizePlan(plan);
+        if (planType !== 'next') return normalized;
+
+        nextWeekCenzoDefaults.forEach(({dayIndex, fields}) => {
+            const dayEntry = normalized[dayIndex] || {};
+            normalized[dayIndex] = {
+                ...dayEntry,
+                ...Object.fromEntries(Object.entries(fields).map(([key, value]) => (
+                    [key, (dayEntry[key] || '').trim() || value]
+                ))),
+            };
+        });
+
         return normalized;
     }
 
@@ -112,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setWeekData(planType, plan) {
-        weekDataByType[planType] = normalizePlan(plan);
+        weekDataByType[planType] = applyPlanDefaults(planType, plan);
         if (planType === activePlanType) {
             weekData = weekDataByType[planType];
         }
@@ -194,16 +242,23 @@ document.addEventListener('DOMContentLoaded', () => {
         parents.className = 'section';
         parents.appendChild(makeSectionTitle('Mom & Dad'));
         parents.appendChild(makeField('Lunch', 'momLunch'));
-        parents.appendChild(makeField('Dinner', 'momDinner'));
 
         const cenzo = document.createElement('div');
         cenzo.className = 'section';
         cenzo.appendChild(makeSectionTitle('Cenzo'));
         cenzo.appendChild(makeField('Breakfast', 'cenzoBreakfast'));
         cenzo.appendChild(makeField('Lunch', 'cenzoLunch'));
-        cenzo.appendChild(makeField('Dinner', 'cenzoDinner'));
 
-        card.append(parents, cenzo);
+        const sharedDinner = document.createElement('div');
+        sharedDinner.className = 'section shared-dinner-section';
+        sharedDinner.appendChild(makeSectionTitle('Shared Dinner'));
+        sharedDinner.appendChild(makeField('Meal', 'dinner'));
+
+        const personalMeals = document.createElement('div');
+        personalMeals.className = 'meal-sections';
+        personalMeals.append(parents, cenzo);
+
+        card.append(personalMeals, sharedDinner);
         plannerCard.appendChild(card);
     }
 
@@ -262,11 +317,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = weekData[activeDayIndex] || {};
         document.getElementById('card-day-label').textContent = weekDays[activeDayIndex];
         Object.entries(fieldRefs).forEach(([key, ref]) => {
-            ref.mealEl.textContent = data[key] || '';
+            ref.mealEl.textContent = getFieldValue(data, key);
             const sidesKey = `${key}Sides`;
-            ref.sidesEl.textContent = data[sidesKey] || '';
+            ref.sidesEl.textContent = getFieldValue(data, sidesKey);
         });
         highlightActiveTab();
+    }
+
+    function getFieldValue(dayData, key) {
+        if (dayData[key]) return dayData[key];
+        if (key === 'dinner') return dayData.momDinner || dayData.cenzoDinner || dayData.Cenzo || '';
+        if (key === 'dinnerSides') return dayData.momDinnerSides || dayData.cenzoDinnerSides || dayData.CenzoSides || '';
+        return '';
     }
 
     function highlightActiveTab() {
@@ -390,10 +452,160 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2500);
     }
 
+    function openPlanningAssistant() {
+        assistantDraft = null;
+        assistantPreview.innerHTML = '';
+        assistantStatus.textContent = '';
+        assistantApplyButton.hidden = true;
+        if (typeof assistantDialog.showModal === 'function') {
+            assistantDialog.showModal();
+        } else {
+            assistantDialog.setAttribute('open', 'open');
+        }
+    }
+
+    function closePlanningAssistant() {
+        if (typeof assistantDialog.close === 'function') {
+            assistantDialog.close();
+        } else {
+            assistantDialog.removeAttribute('open');
+        }
+    }
+
+    function checkedDayValues(groupName) {
+        return Array.from(assistantDialog.querySelectorAll(`[data-option-group="${groupName}"] input:checked`))
+            .map((input) => input.value);
+    }
+
+    async function generateAssistantDraft(event) {
+        event.preventDefault();
+        assistantGenerateButton.disabled = true;
+        assistantApplyButton.hidden = true;
+        assistantStatus.textContent = 'Building a draft from your family patterns...';
+        try {
+            const response = await fetch(suggestPlanUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    busyDays: checkedDayValues('busyDays'),
+                    eatingOutDays: checkedDayValues('eatingOutDays'),
+                    maxCookingNights: Number.parseInt(document.getElementById('assistant-max-cooking-nights').value, 10),
+                    useLeftovers: document.getElementById('assistant-use-leftovers').checked,
+                    preserveExisting: document.getElementById('assistant-preserve-existing').checked,
+                }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || !Array.isArray(result.plan)) {
+                throw new Error(result.error || 'Could not build a draft.');
+            }
+            assistantDraft = result;
+            renderAssistantPreview(result);
+            assistantStatus.textContent = `Drafted from ${result.generatedFrom?.observations || 0} past meal observations. Review it before applying.`;
+            assistantApplyButton.hidden = false;
+        } catch (error) {
+            console.error(error);
+            assistantStatus.textContent = error.message || 'Could not build a draft.';
+        } finally {
+            assistantGenerateButton.disabled = false;
+        }
+    }
+
+    function renderAssistantPreview(result) {
+        assistantPreview.innerHTML = '';
+        const reasonMap = new Map((result.reasons || []).map((item) => [`${item.dayIndex}:${item.slot}`, item.reason]));
+        result.plan.forEach((dayPlan, dayIndex) => {
+            const card = document.createElement('article');
+            card.className = 'assistant-preview-day';
+            const heading = document.createElement('h3');
+            heading.textContent = weekDays[dayIndex];
+            card.appendChild(heading);
+            [
+                ['Mom & Dad lunch', 'momLunch'],
+                ['Cenzo breakfast', 'cenzoBreakfast'],
+                ['Cenzo lunch', 'cenzoLunch'],
+                ['Shared dinner', 'dinner'],
+            ].forEach(([label, key]) => {
+                const value = getFieldValue(dayPlan, key);
+                if (!value) return;
+                const row = document.createElement('div');
+                row.className = 'assistant-preview-row';
+                const text = document.createElement('div');
+                const labelEl = document.createElement('small');
+                labelEl.textContent = label;
+                const valueEl = document.createElement('strong');
+                valueEl.textContent = value;
+                text.append(labelEl, valueEl);
+                row.appendChild(text);
+                const actions = document.createElement('div');
+                actions.className = 'assistant-preview-actions';
+                const reason = reasonMap.get(`${dayIndex}:${key}`);
+                if (reason) {
+                    const reasonEl = document.createElement('span');
+                    reasonEl.textContent = reason;
+                    actions.appendChild(reasonEl);
+                }
+                const alternatives = result.alternatives?.[`${dayIndex}:${key}`] || [];
+                if (alternatives.length > 1) {
+                    const swapButton = document.createElement('button');
+                    swapButton.type = 'button';
+                    swapButton.className = 'assistant-swap';
+                    swapButton.textContent = 'Different';
+                    swapButton.dataset.dayIndex = String(dayIndex);
+                    swapButton.dataset.slot = key;
+                    actions.appendChild(swapButton);
+                }
+                row.appendChild(actions);
+                card.appendChild(row);
+            });
+            assistantPreview.appendChild(card);
+        });
+    }
+
+    function cycleAssistantMeal(dayIndex, slot) {
+        const alternatives = assistantDraft?.alternatives?.[`${dayIndex}:${slot}`] || [];
+        if (!alternatives.length) return;
+        const dayPlan = assistantDraft.plan[dayIndex] || {};
+        const currentValue = getFieldValue(dayPlan, slot);
+        const currentIndex = alternatives.findIndex((value) => value === currentValue);
+        dayPlan[slot] = alternatives[(currentIndex + 1 + alternatives.length) % alternatives.length];
+        assistantDraft.plan[dayIndex] = dayPlan;
+        assistantDraft.reasons = (assistantDraft.reasons || []).filter((item) => !(item.dayIndex === dayIndex && item.slot === slot));
+        assistantDraft.reasons.push({dayIndex, slot, reason: 'Changed in this draft'});
+        renderAssistantPreview(assistantDraft);
+    }
+
+    function applyAssistantDraft() {
+        if (!assistantDraft || !Array.isArray(assistantDraft.plan)) return;
+        stashCurrentCard();
+        setWeekData('next', assistantDraft.plan);
+        localStorage.setItem(storageKey('next'), JSON.stringify(weekDataByType.next));
+        activePlanType = 'next';
+        localStorage.setItem(activeWeekStorageKey, activePlanType);
+        weekData = weekDataByType.next;
+        activeDayIndex = 0;
+        renderWeekTabs();
+        renderDaySwitcher();
+        renderCard();
+        closePlanningAssistant();
+        showConfirmationMessage('Draft applied to Next Week. Review it, then tap Save week.');
+    }
+
     librarySearch.addEventListener('input', () => renderMealLibrary(meals));
     saveWeekButton.addEventListener('click', saveWeek);
     clearWeekButton.addEventListener('click', clearWeek);
     nextDayButton.addEventListener('click', advanceDay);
+    assistantOpenButton.addEventListener('click', openPlanningAssistant);
+    assistantCloseButton.addEventListener('click', closePlanningAssistant);
+    assistantForm.addEventListener('submit', generateAssistantDraft);
+    assistantApplyButton.addEventListener('click', applyAssistantDraft);
+    assistantDialog.addEventListener('click', (event) => {
+        if (event.target === assistantDialog) closePlanningAssistant();
+    });
+    assistantPreview.addEventListener('click', (event) => {
+        const swapButton = event.target.closest('.assistant-swap');
+        if (!swapButton) return;
+        cycleAssistantMeal(Number(swapButton.dataset.dayIndex), swapButton.dataset.slot);
+    });
 
     populateFromStorage('current');
     populateFromStorage('next');

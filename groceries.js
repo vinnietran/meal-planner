@@ -1,65 +1,74 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Set your deployed Functions base URL, e.g. https://us-central1-<project>.cloudfunctions.net
-    const FUNCTIONS_BASE = ''; // TODO: set this to your Cloud Functions base URL
     const fetchMealsUrl = `https://fetchmeals-xzur6xnjsa-uc.a.run.app/fetchMeals`;
     const fetchPlanUrl = `https://fetchmealplan-xzur6xnjsa-uc.a.run.app/fetchMealPlan?planType=current`;
+    const fetchNecessitiesUrl = 'https://us-central1-fork-cast-f19a9.cloudfunctions.net/fetchNecessities';
     const groceryListEl = document.getElementById('grocery-list');
+    const necessityListEl = document.getElementById('necessity-list');
     const mealSummaryEl = document.getElementById('meal-summary');
+    const automationStatusEl = document.getElementById('automation-status');
+    const groceryUtils = window.GroceryListUtils;
+    let currentGroceryItems = [];
+    let currentNecessityItems = [];
 
     async function fetchData() {
         try {
-            const mealsResponse = await fetch(fetchMealsUrl, { mode: 'cors' });
+            const [mealsResponse, planResp, necessitiesResp] = await Promise.all([
+                fetch(fetchMealsUrl, { mode: 'cors' }),
+                fetch(fetchPlanUrl, { mode: 'cors' }),
+                fetch(fetchNecessitiesUrl, { mode: 'cors' }).catch(() => ({ ok: false })),
+            ]);
             const meals = await mealsResponse.json();
-            const planResp = await fetch(fetchPlanUrl, {mode: 'cors'});
             const planData = await planResp.json();
+            const necessities = necessitiesResp.ok ? await necessitiesResp.json() : [];
             const mealPlan = Array.isArray(planData.plan) ? planData.plan : [];
 
-            buildGroceryList(mealPlan, meals);
+            currentNecessityItems = groceryUtils.buildNecessityList(necessities);
+            currentGroceryItems = groceryUtils.mergeCartLists([
+                groceryUtils.buildGroceryList(mealPlan, meals),
+                currentNecessityItems,
+            ]);
+            buildGroceryList(currentGroceryItems);
+            buildNecessityList(currentNecessityItems);
             buildMealSummary(mealPlan, meals);
+            updateAutomationStatus();
         } catch (error) {
             console.error('Error fetching data:', error);
-            buildGroceryList([], []);
+            currentGroceryItems = [];
+            currentNecessityItems = [];
+            buildGroceryList(currentGroceryItems);
+            buildNecessityList(currentNecessityItems);
             buildMealSummary([], []);
+            updateAutomationStatus('Could not load the live grocery list yet.');
         }
     }
 
-    function buildGroceryList(mealPlan, meals) {
-        const items = {};
-
-        mealPlan.forEach(day => {
-            const selections = [
-                day.lunch,
-                day.dinner,
-                day.Cenzo,
-                day.momLunch,
-                day.momDinner,
-                day.cenzoBreakfast,
-                day.cenzoLunch,
-                day.cenzoDinner,
-            ].filter(Boolean);
-
-            selections.forEach(name => {
-            const meal = meals.find(m => m.name === name);
-            if (meal && Array.isArray(meal.ingredients) && meal.ingredients.length) {
-                meal.ingredients.filter(Boolean).forEach(ing => {
-                    items[ing] = (items[ing] || 0) + 1;
-                });
-            }
-        });
-    });
-
+    function buildGroceryList(items) {
         groceryListEl.innerHTML = '';
-        const keys = Object.keys(items).sort((a, b) => a.localeCompare(b));
-        if (!keys.length) {
+        if (!items.length) {
             groceryListEl.innerHTML = '<li class="grocery-item">No items yet. Add meals in the planner.</li>';
             return;
         }
 
-        keys.forEach(item => {
+        items.forEach(item => {
             const li = document.createElement('li');
             li.className = 'grocery-item';
-            li.innerHTML = `<span>${item}</span><span class="count">x${items[item]}</span>`;
+            li.innerHTML = `<span>${item.name}</span><span class="count">x${item.count}</span>`;
             groceryListEl.appendChild(li);
+        });
+    }
+
+    function buildNecessityList(items) {
+        necessityListEl.innerHTML = '';
+        if (!items.length) {
+            necessityListEl.innerHTML = '<li class="grocery-item">No necessities are selected for this run. Toggle them on the Necessities page.</li>';
+            return;
+        }
+
+        items.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'grocery-item';
+            li.innerHTML = `<span>${item.name}</span><span class="count">x${item.count}</span>`;
+            necessityListEl.appendChild(li);
         });
     }
 
@@ -69,18 +78,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const formatEntry = (label, value) => {
             if (!value) return null;
-            const meal = meals.find(m => m.name === value);
             return `<div class="meal-chip"><strong>${label}:</strong> ${value}</div>`;
         };
 
         days.forEach((day, idx) => {
             const entry = mealPlan[idx] || {};
             const chips = [
-                formatEntry('Lunch', entry.momLunch || entry.lunch),
-                formatEntry('Dinner', entry.momDinner || entry.dinner),
+                formatEntry('Mom & Dad Lunch', entry.momLunch || entry.lunch),
                 formatEntry('Cenzo Breakfast', entry.cenzoBreakfast),
                 formatEntry('Cenzo Lunch', entry.cenzoLunch),
-                formatEntry('Cenzo Dinner', entry.cenzoDinner || entry.Cenzo),
+                formatEntry('Shared Dinner', entry.dinner || entry.momDinner || entry.cenzoDinner || entry.Cenzo),
             ].filter(Boolean);
 
             if (chips.length) {
@@ -92,5 +99,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function updateAutomationStatus(message) {
+        const defaultMessage = currentGroceryItems.length
+            ? `${currentGroceryItems.length} grocery items are ready for Playwright automation, including ${currentNecessityItems.length} selected necessities.`
+            : 'The script needs at least one grocery item before it can build a Giant Eagle cart.';
+        automationStatusEl.textContent = message || defaultMessage;
+    }
+
+    updateAutomationStatus();
     fetchData();
 });

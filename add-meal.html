@@ -11,52 +11,189 @@
     <div class="container planner-shell">
         <header class="hero">
             <div class="hero-text">
-                <p class="eyebrow">New recipe</p>
-                <h1>Add a Meal</h1>
-                <p class="subhead">Save a meal with ingredients and the last time you had it.</p>
+                <p class="eyebrow">Meal library</p>
+                <h1 id="meal-form-title">Add a Meal</h1>
+                <p id="meal-form-subhead" class="subhead">Save a meal with structured ingredient records so planner picks and Giant Eagle automation use the same source of truth.</p>
             </div>
             <div class="nav-actions">
                 <a class="link-button" href="index.html">Dashboard</a>
                 <a class="link-button secondary" href="planner.html">Planner</a>
+                <a class="link-button secondary" href="meals.html">Meals</a>
+                <a class="link-button secondary" href="knowledge.html">Knowledge</a>
+                <a class="link-button secondary" href="necessities.html">Necessities</a>
                 <a class="link-button secondary" href="groceries.html">Groceries</a>
             </div>
         </header>
 
         <div id="message" class="toast" role="status" aria-live="polite"></div>
 
-        <div class="mini-panel">
-            <form id="meal-form" class="form-grid">
-                <div class="form-row">
-                    <label for="meal-name">Meal name</label>
-                    <input type="text" id="meal-name" name="mealName" placeholder="e.g., Lemon Chicken" required>
+        <div class="planner-grid">
+            <main class="planner-main">
+                <div class="mini-panel">
+                    <form id="meal-form" class="form-grid">
+                        <div class="split-form-grid">
+                            <div class="form-row">
+                                <label for="meal-name">Meal name</label>
+                                <input type="text" id="meal-name" name="mealName" placeholder="e.g., Lemon Chicken" required>
+                            </div>
+                            <div class="form-row">
+                                <label for="meal-tag">Tag</label>
+                                <select id="meal-tag" name="mealTag" required>
+                                    <option value="">Select a tag</option>
+                                    <option value="Lunch">Lunch</option>
+                                    <option value="Dinner">Dinner</option>
+                                    <option value="Cenzo">Cenzo</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label for="meal-lastHad">Last had (optional)</label>
+                                <input type="date" id="meal-lastHad" name="mealLastHad">
+                            </div>
+                            <div class="form-row">
+                                <label for="meal-aliases">Also known as (comma separated)</label>
+                                <input type="text" id="meal-aliases" placeholder="Omelette, Sunday omelettes">
+                            </div>
+                            <div class="form-row">
+                                <label for="meal-prep-minutes">Approximate prep time</label>
+                                <input type="number" id="meal-prep-minutes" min="0" max="1440" step="5" placeholder="30">
+                            </div>
+                            <div class="form-row">
+                                <label for="meal-effort">Cooking effort</label>
+                                <select id="meal-effort">
+                                    <option value="">Not set</option>
+                                    <option value="easy">Easy</option>
+                                    <option value="moderate">Moderate</option>
+                                    <option value="involved">Involved</option>
+                                </select>
+                            </div>
+                            <div class="form-row form-row-span">
+                                <label for="meal-sides">Planner sides / serving notes (comma separated, optional)</label>
+                                <textarea id="meal-sides" name="mealSides" rows="3" placeholder="Mashed potatoes, broccoli, corn"></textarea>
+                            </div>
+                            <div class="form-row form-row-span">
+                                <label for="meal-planning-notes">Planning notes</label>
+                                <textarea id="meal-planning-notes" rows="3" placeholder="Good for busy nights, double the recipe, Cenzo prefers sauce on the side"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="necessity-toggles meal-knowledge-toggles">
+                            <label class="inline-toggle">
+                                <input type="checkbox" id="meal-liked-mom-dad">
+                                <span>Mom & Dad like this</span>
+                            </label>
+                            <label class="inline-toggle">
+                                <input type="checkbox" id="meal-liked-cenzo">
+                                <span>Cenzo likes this</span>
+                            </label>
+                            <label class="inline-toggle">
+                                <input type="checkbox" id="meal-makes-leftovers">
+                                <span>Makes useful leftovers</span>
+                            </label>
+                            <label class="inline-toggle">
+                                <input type="checkbox" id="meal-freezer-friendly">
+                                <span>Freezer-friendly</span>
+                            </label>
+                        </div>
+
+                        <section class="ingredient-builder">
+                            <div class="section-header">
+                                <div>
+                                    <p class="eyebrow">Ingredient records</p>
+                                    <h3>Cart-ready ingredients</h3>
+                                </div>
+                            </div>
+                            <div id="ingredient-list" class="ingredient-list"></div>
+                            <div class="ingredient-add-row">
+                                <button type="button" id="add-ingredient" class="ghost-btn">Add Ingredient</button>
+                            </div>
+                        </section>
+
+                        <div class="button-container">
+                            <button type="submit" id="submit-meal" class="primary-btn">Save Meal</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="form-row">
-                    <label for="meal-ingredients">Ingredients (comma separated)</label>
-                    <textarea id="meal-ingredients" name="mealIngredients" rows="4" placeholder="Chicken, Lemons, Garlic, Olive Oil" required></textarea>
+            </main>
+
+            <aside class="planner-aside">
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">How to model a meal</p>
+                        <h3>Recommended structure</h3>
+                    </div>
+                    <ul class="tip-list">
+                        <li>Use one ingredient row for each distinct thing you expect Giant Eagle to add to the cart.</li>
+                        <li>Keep the ingredient name human-friendly, then tune the cart query for the exact store search term.</li>
+                        <li>Use cart quantity for how many packages or units should be added, not the recipe measurement.</li>
+                        <li>Use planner sides for the text you want to see on the weekly planner card.</li>
+                    </ul>
                 </div>
-                <div class="form-row">
-                    <label for="meal-sides">Sides (comma separated, optional)</label>
-                    <textarea id="meal-sides" name="mealSides" rows="3" placeholder="Mashed potatoes, broccoli, corn"></textarea>
+                <div class="mini-panel">
+                    <div class="panel-head">
+                        <p class="eyebrow">Useful metadata</p>
+                        <h3>Fields that help automation</h3>
+                    </div>
+                    <p class="helper-note">Brand, size, department, and notes are optional, but they give the browser runner better search hints and make skipped items easier to review.</p>
                 </div>
-                <div class="form-row">
-                    <label for="meal-tag">Tag</label>
-                    <select id="meal-tag" name="mealTag" required>
-                        <option value="">Select a tag</option>
-                        <option value="Lunch">Lunch</option>
-                        <option value="Dinner">Dinner</option>
-                        <option value="Cenzo">Cenzo</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="meal-lastHad">Last had (optional)</label>
-                    <input type="date" id="meal-lastHad" name="mealLastHad">
-                </div>
-                <div class="button-container">
-                    <button type="submit" id="submit-meal" class="primary-btn">Save Meal</button>
-                </div>
-            </form>
+            </aside>
         </div>
     </div>
+
+    <template id="ingredient-template">
+        <article class="ingredient-card">
+            <div class="ingredient-card-head">
+                <p class="ingredient-card-title">Ingredient</p>
+                <button type="button" class="ghost-btn remove-ingredient">Remove</button>
+            </div>
+            <div class="ingredient-grid">
+                <div class="form-row">
+                    <label>Ingredient name</label>
+                    <input type="text" class="ingredient-name" placeholder="Chicken breast" required>
+                </div>
+                <div class="form-row">
+                    <label>Recipe quantity</label>
+                    <input type="text" class="ingredient-quantity" placeholder="2">
+                </div>
+                <div class="form-row">
+                    <label>Unit</label>
+                    <input type="text" class="ingredient-unit" placeholder="lb, bag, jar">
+                </div>
+                <div class="form-row">
+                    <label>Preparation</label>
+                    <input type="text" class="ingredient-preparation" placeholder="diced, thawed, shredded">
+                </div>
+                <div class="form-row form-row-span">
+                    <label>Giant Eagle search query</label>
+                    <input type="text" class="ingredient-cart-query" placeholder="Bell & Evans chicken breast">
+                </div>
+                <div class="form-row">
+                    <label>Cart quantity</label>
+                    <input type="number" min="1" step="1" class="ingredient-cart-quantity" value="1">
+                </div>
+                <div class="form-row">
+                    <label>Preferred brand</label>
+                    <input type="text" class="ingredient-brand" placeholder="Bell & Evans">
+                </div>
+                <div class="form-row">
+                    <label>Preferred size</label>
+                    <input type="text" class="ingredient-size" placeholder="2 lb pack">
+                </div>
+                <div class="form-row">
+                    <label>Department</label>
+                    <input type="text" class="ingredient-department" placeholder="Produce, Meat, Frozen">
+                </div>
+                <div class="form-row form-row-span">
+                    <label>Notes</label>
+                    <textarea class="ingredient-notes" rows="2" placeholder="Any detail to help you review skipped items later"></textarea>
+                </div>
+                <label class="inline-toggle">
+                    <input type="checkbox" class="ingredient-allow-substitutes" checked>
+                    <span>Allow substitutes</span>
+                </label>
+            </div>
+        </article>
+    </template>
+
     <script src="./add-meal.js"></script>
 </body>
 </html>

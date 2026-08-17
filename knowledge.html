@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning Knowledge</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <div class="container planner-shell knowledge-shell">
+        <header class="hero">
+            <div class="hero-text">
+                <p class="eyebrow">Teach the planner</p>
+                <h1>Planning Knowledge</h1>
+                <p class="subhead">Save family preferences and quickly record what actually worked each week.</p>
+            </div>
+            <div class="nav-actions">
+                <a class="link-button" href="planner.html">Planner</a>
+                <a class="link-button secondary" href="index.html">Dashboard</a>
+                <a class="link-button secondary" href="meals.html">Meals</a>
+                <a class="link-button secondary" href="groceries.html">Groceries</a>
+            </div>
+        </header>
+
+        <div id="message" class="toast" role="status" aria-live="polite"></div>
+
+        <main class="knowledge-layout">
+            <section class="mini-panel knowledge-profile-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Family profile</p>
+                        <h2>How we like to plan</h2>
+                    </div>
+                    <small class="muted">These become constraints for future suggestions.</small>
+                </div>
+
+                <form id="knowledge-profile-form" class="form-grid">
+                    <div class="form-row">
+                        <label for="planning-goals">What should a good week feel like?</label>
+                        <textarea id="planning-goals" rows="3" placeholder="Easy weeknights, planned leftovers, and one new dinner"></textarea>
+                    </div>
+                    <div class="knowledge-number-grid">
+                        <div class="form-row">
+                            <label for="max-cooking-nights">Maximum cooking nights</label>
+                            <select id="max-cooking-nights">
+                                <option value="3">3 nights</option>
+                                <option value="4">4 nights</option>
+                                <option value="5">5 nights</option>
+                                <option value="6">6 nights</option>
+                                <option value="7">7 nights</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="new-meals-per-week">New meals per week</label>
+                            <select id="new-meals-per-week">
+                                <option value="0">None</option>
+                                <option value="1">1 meal</option>
+                                <option value="2">2 meals</option>
+                                <option value="3">3 meals</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="leftovers-preference">Leftovers</label>
+                            <select id="leftovers-preference">
+                                <option value="rarely">Rarely plan them</option>
+                                <option value="sometimes">Sometimes</option>
+                                <option value="often">Plan them often</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="favorite-meals">Family favorites</label>
+                        <input id="favorite-meals" type="text" placeholder="Tacos, meatloaf, sweet and sour chicken">
+                    </div>
+                    <div class="form-row">
+                        <label for="disliked-meals">Avoid or rarely suggest</label>
+                        <input id="disliked-meals" type="text" placeholder="Meals that did not work">
+                    </div>
+                    <div class="form-row">
+                        <label for="recurring-routines">Recurring routines, one per line</label>
+                        <textarea id="recurring-routines" rows="4" placeholder="Tuesday: Doodlebugs for Cenzo breakfast and lunch&#10;Sunday: Ideals"></textarea>
+                    </div>
+                    <button type="submit" class="primary-btn knowledge-save-button">Save Planning Profile</button>
+                </form>
+            </section>
+
+            <section class="mini-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">What the planner knows</p>
+                        <h2>Learned patterns</h2>
+                    </div>
+                    <small id="knowledge-updated" class="muted">Loading...</small>
+                </div>
+                <div id="knowledge-stats" class="knowledge-stats" aria-live="polite"></div>
+                <div class="knowledge-insight-grid">
+                    <div>
+                        <h3>Frequently planned</h3>
+                        <div id="frequent-meals" class="knowledge-chip-list"></div>
+                    </div>
+                    <div>
+                        <h3>Possible routines</h3>
+                        <div id="inferred-routines" class="knowledge-chip-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mini-panel knowledge-review-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Improve future plans</p>
+                        <h2>Review Meal Knowledge</h2>
+                    </div>
+                    <small id="knowledge-review-count" class="muted">Loading...</small>
+                </div>
+                <p class="helper-note">Start with the most frequent entries. Each decision improves matching, suggestions, and grocery planning.</p>
+                <div id="knowledge-review-list" class="knowledge-review-list"></div>
+                <button id="knowledge-review-more" class="ghost-btn knowledge-review-more" type="button" hidden>Show More</button>
+            </section>
+
+            <section class="mini-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Fast weekly check-in</p>
+                        <h2>How did dinner go?</h2>
+                    </div>
+                    <small id="feedback-week" class="muted"></small>
+                </div>
+                <p class="helper-note">A few taps each week will make future plans much more personal.</p>
+                <div id="weekly-feedback" class="weekly-feedback"></div>
+            </section>
+        </main>
+    </div>
+    <dialog id="knowledge-connect-dialog" class="knowledge-connect-dialog">
+        <form id="knowledge-connect-form" class="knowledge-connect-shell">
+            <div class="planning-assistant-head">
+                <div>
+                    <p class="eyebrow">Connect an alias</p>
+                    <h2 id="knowledge-connect-title">Connect meal</h2>
+                </div>
+                <button id="knowledge-connect-close" type="button" class="ghost-btn">Close</button>
+            </div>
+            <p class="helper-note">Choose the saved recipe this name represents. Future history will use the saved meal automatically.</p>
+            <label class="form-row">
+                <span>Saved meal</span>
+                <select id="knowledge-connect-meal" required></select>
+            </label>
+            <button type="submit" class="primary-btn knowledge-save-button">Connect Meal</button>
+        </form>
+    </dialog>
+    <script src="./knowledge.js"></script>
+</body>
+</html>

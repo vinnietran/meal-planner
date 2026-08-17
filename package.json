@@ -1,0 +1,10 @@
+{
+  "name": "meal-planner",
+  "private": true,
+  "scripts": {
+    "giant-eagle:cart": "node scripts/giant-eagle-cart.js"
+  },
+  "dependencies": {
+    "playwright": "^1.53.2"
+  }
+}
