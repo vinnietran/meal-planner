@@ -33,9 +33,9 @@ The Knowledge page builds a durable family planning profile from three Firestore
 
 Existing `mealHistory` records are read as deduplicated observations so older planning activity can contribute learned patterns. Weekly feedback updates a matched saved meal's `lastHad` value when it is marked cooked. The existing `weekStart` and current/next plan date model is unchanged.
 
-The Knowledge review inbox ranks unmatched historical names by frequency. A reviewer can connect an alias to a saved meal, classify it as leftovers/eating out/a recurring event, ignore it, or open the Add Meal form with the name prefilled. Resolutions live in `knowledgeMealItems`, and connected aliases backfill matching `mealEvents` records.
+The Knowledge review inbox ranks unmatched historical names by frequency. A reviewer can connect an alias to a saved meal, classify it as eating out or a recurring event, ignore it, or open the Add Meal form with the name prefilled. Leftover entries are derived from the original dinner and excluded from the knowledge catalog. Resolutions live in `knowledgeMealItems`, and connected aliases backfill matching `mealEvents` records.
 
-The planner's Help Me Plan flow uses this resolved knowledge, explicit family preferences, recurring routines, busy days, eating-out days, and cooking-night limits to create a reviewable next-week draft. The draft remains local until the user applies it and saves the week.
+The planner's Help Me Plan flow uses this resolved knowledge, explicit family preferences, recurring routines, busy days, eating-out days, and cooking-night limits to create a reviewable next-week draft. When it schedules leftovers, it repeats a dinner already planned earlier in the week (for example, `Spaghetti leftovers`) instead of looking for a generic leftovers meal. The draft remains local until the user applies it and saves the week.
 
 Deploy the Functions project before expecting Knowledge data to sync across devices. Until those endpoints are deployed, the Knowledge page keeps profile and feedback edits in local browser storage as a preview fallback.
 

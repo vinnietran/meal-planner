@@ -278,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
         actions.className = 'knowledge-review-actions';
         actions.append(
             reviewAction('Connect Meal', 'connect', true),
-            reviewAction('Leftovers', 'leftovers'),
             reviewAction('Eating Out', 'eatingOut'),
             reviewAction('Event', 'event'),
             reviewAction('Create Meal', 'create'),
@@ -289,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function suggestedActionLabel(classification) {
-        return ({leftovers: 'Likely leftovers', eatingOut: 'Likely eating out', event: 'Likely routine'})[classification] || 'Unmatched meal';
+        return ({eatingOut: 'Likely eating out', event: 'Likely routine'})[classification] || 'Unmatched meal';
     }
 
     function reviewAction(label, action, primary = false) {

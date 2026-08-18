@@ -28,7 +28,6 @@ const FEEDBACK_STATUSES = new Set(["planned", "cooked", "skipped", "replaced"]);
 const KNOWN_MEAL_ALIASES = new Map([
   ["db", "doodlebugs"],
   ["omelettes", "omelette"],
-  ["leftovers", "leftover"],
 ]);
 const KNOWN_MEAL_DISPLAY_NAMES = new Map([
   ["doodlebugs", "Doodlebugs"],
@@ -114,6 +113,14 @@ function normalizeMealKey(value) {
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
   return KNOWN_MEAL_ALIASES.get(key) || key;
+}
+
+function isLeftoverMealName(value) {
+  return /\bleftovers?\b/i.test(normalizeString(value));
+}
+
+function isEatingOutMealName(value) {
+  return ["out", "eating out", "restaurant"].includes(normalizeMealKey(value));
 }
 
 function normalizeInteger(value, {min = 0, max = Number.MAX_SAFE_INTEGER, fallback = 0} = {}) {
@@ -766,7 +773,7 @@ exports.fetchMealKnowledge = onRequest(async (req, res) => {
   const observations = new Map();
   const addObservation = ({weekStart, day, dayIndex, slot, mealName, mealId, status, rating}) => {
     const key = [weekStart, day || dayIndex, slot, normalizeMealKey(mealName)].join("|");
-    if (!mealName || observations.has(key)) return;
+    if (!mealName || isLeftoverMealName(mealName) || observations.has(key)) return;
     observations.set(key, {weekStart, day, dayIndex, slot, mealName, mealId, status, rating});
   };
   events.filter((event) => event.status !== "removed").forEach(addObservation);
@@ -865,7 +872,7 @@ exports.fetchMealKnowledgeReview = onRequest(async (req, res) => {
     const mealKey = normalizeMealKey(mealName);
     const canonicalSlot = canonicalKnowledgeSlot(slot);
     const normalizedDayIndex = Number.isInteger(dayIndex) && dayIndex >= 0 ? dayIndex : WEEK_DAYS.indexOf(day);
-    if (!mealKey || normalizedDayIndex < 0 || !KNOWLEDGE_SLOTS.includes(canonicalSlot)) return;
+    if (!mealKey || isLeftoverMealName(mealName) || normalizedDayIndex < 0 || !KNOWLEDGE_SLOTS.includes(canonicalSlot)) return;
     const key = [weekStart, normalizedDayIndex, canonicalSlot, mealKey].join("|");
     if (!observations.has(key)) {
       observations.set(key, {
@@ -906,7 +913,6 @@ exports.fetchMealKnowledgeReview = onRequest(async (req, res) => {
 
   const items = Array.from(unmatched.values()).map((item) => {
     let suggestedClassification = "meal";
-    if (item.mealKey.includes("leftover")) suggestedClassification = "leftovers";
     if (["doodlebugs", "ideals", "ebensburg"].includes(item.mealKey)) suggestedClassification = "event";
     if (["out", "eating out", "restaurant"].includes(item.mealKey)) suggestedClassification = "eatingOut";
     return {
@@ -975,7 +981,7 @@ exports.resolveMealKnowledge = onRequest(async (req, res) => {
     }
   } else if (action === "classify") {
     const classification = normalizeString(body.classification);
-    if (!["leftovers", "eatingOut", "event"].includes(classification)) {
+    if (!["eatingOut", "event"].includes(classification)) {
       return res.status(400).json({error: "invalid classification"});
     }
     resolution = {mealKey, displayName, action: "classified", classification, updatedAt: now};
@@ -1023,7 +1029,7 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
     const normalizedDayIndex = Number.isInteger(dayIndex) && dayIndex >= 0 ? dayIndex : WEEK_DAYS.indexOf(day);
     const originalMealKey = normalizeMealKey(mealName);
     const resolution = resolutions.get(originalMealKey);
-    if (resolution?.classification === "ignored") return;
+    if (resolution?.classification === "ignored" || isLeftoverMealName(mealName)) return;
     const mealKey = resolution?.canonicalName ? normalizeMealKey(resolution.canonicalName) : originalMealKey;
     const resolvedMealName = resolution?.canonicalName || mealName;
     if (!mealKey || normalizedDayIndex < 0 || !KNOWLEDGE_SLOTS.includes(canonicalSlot)) return;
@@ -1086,13 +1092,14 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
   const usedKeys = new Set();
   const reasons = [];
   let cookingNights = 0;
+  let leftoverSource = "";
   const maxCookingNights = normalizeInteger(body.maxCookingNights, {
     min: 0,
     max: 7,
     fallback: profile.maxCookingNights ?? 5,
   });
 
-  const pickCandidate = (slot, dayIndex, {avoidRecent = false, preferEasy = false} = {}) => {
+  const pickCandidate = (slot, dayIndex, {avoidRecent = false, preferEasy = false, preferLeftovers = false} = {}) => {
     const routine = routinesFor(dayIndex, slot)[0];
     if (routine && routine.count >= 2) return {...routine, reason: `A ${WEEK_DAYS[dayIndex]} routine`};
     const candidates = candidatesForSlot(slot).map((candidate) => {
@@ -1101,6 +1108,7 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
       if (usedKeys.has(candidate.mealKey)) score -= 12;
       if (avoidRecent && recentDinnerKeys.has(candidate.mealKey)) score -= 18;
       if (preferEasy && (metadata.effort === "easy" || (metadata.prepMinutes && metadata.prepMinutes <= 30))) score += 10;
+      if (preferLeftovers && metadata.makesLeftovers === true) score += 14;
       return {...candidate, score};
     }).sort((left, right) => right.score - left.score);
     const chosen = candidates[0];
@@ -1118,7 +1126,14 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
       reasons.push({dayIndex, slot, reason: suggestion.reason});
     });
 
-    if (preserveExisting && getPlanSlotValue(nextDay, "dinner")) {
+    const existingDinner = getPlanSlotValue(nextDay, "dinner");
+    if (preserveExisting && existingDinner) {
+      if (isLeftoverMealName(existingDinner)) {
+        leftoverSource = "";
+      } else if (!isEatingOutMealName(existingDinner)) {
+        leftoverSource = existingDinner;
+        cookingNights += 1;
+      }
       draft[dayIndex] = nextDay;
       return;
     }
@@ -1128,18 +1143,29 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
       draft[dayIndex] = nextDay;
       return;
     }
-    if (useLeftovers && cookingNights >= maxCookingNights) {
-      const previousDinner = dayIndex > 0 ? getPlanSlotValue(draft[dayIndex - 1], "dinner") : "";
-      nextDay.dinner = previousDinner && !normalizeMealKey(previousDinner).includes("leftover")
-        ? `Leftovers: ${previousDinner}`
-        : "Freezer leftovers";
-      reasons.push({dayIndex, slot: "dinner", reason: "Keeps the week within the cooking-night goal"});
+    const shouldUseLeftovers = useLeftovers && leftoverSource &&
+      (busyDays.has(dayIndex) || cookingNights >= maxCookingNights);
+    if (shouldUseLeftovers) {
+      nextDay.dinner = `${leftoverSource} leftovers`;
+      reasons.push({
+        dayIndex,
+        slot: "dinner",
+        reason: busyDays.has(dayIndex)
+          ? `Uses leftovers from an earlier dinner on a busy ${WEEK_DAYS[dayIndex]}`
+          : "Uses an earlier dinner again to reduce cooking",
+      });
+      leftoverSource = "";
       draft[dayIndex] = nextDay;
       return;
     }
-    const dinner = pickCandidate("dinner", dayIndex, {avoidRecent: true, preferEasy: busyDays.has(dayIndex)});
+    const dinner = pickCandidate("dinner", dayIndex, {
+      avoidRecent: true,
+      preferEasy: busyDays.has(dayIndex),
+      preferLeftovers: useLeftovers && busyDays.has(dayIndex + 1),
+    });
     if (dinner) {
       nextDay.dinner = dinner.mealName;
+      leftoverSource = dinner.mealName;
       usedKeys.add(dinner.mealKey);
       cookingNights += 1;
       reasons.push({dayIndex, slot: "dinner", reason: dinner.reason});
@@ -1154,7 +1180,7 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
         ...routinesFor(dayIndex, slot).map((item) => item.mealName),
         ...candidatesForSlot(slot).map((item) => item.mealName),
       ];
-      if (slot === "dinner") names.push("Eating out", "Freezer leftovers");
+      if (slot === "dinner") names.push("Eating out");
       alternatives[`${dayIndex}:${slot}`] = Array.from(new Set(names.filter(Boolean))).slice(0, 8);
     });
   });
