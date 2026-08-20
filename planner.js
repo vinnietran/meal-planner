@@ -487,10 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    busyDays: checkedDayValues('busyDays'),
+                    leftoverDays: checkedDayValues('leftoverDays'),
                     eatingOutDays: checkedDayValues('eatingOutDays'),
-                    maxCookingNights: Number.parseInt(document.getElementById('assistant-max-cooking-nights').value, 10),
-                    useLeftovers: document.getElementById('assistant-use-leftovers').checked,
                     preserveExisting: document.getElementById('assistant-preserve-existing').checked,
                 }),
             });

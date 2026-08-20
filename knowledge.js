@@ -3,8 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const fetchKnowledgeUrl = `${FUNCTIONS_BASE}/fetchMealKnowledge`;
     const saveProfileUrl = `${FUNCTIONS_BASE}/saveHouseholdKnowledge`;
     const saveFeedbackUrl = `${FUNCTIONS_BASE}/saveMealFeedback`;
-    const fetchReviewUrl = `${FUNCTIONS_BASE}/fetchMealKnowledgeReview`;
-    const resolveKnowledgeUrl = `${FUNCTIONS_BASE}/resolveMealKnowledge`;
     const fetchCurrentPlanUrl = 'https://fetchmealplan-xzur6xnjsa-uc.a.run.app/fetchMealPlan?planType=current';
     const fetchMealsUrl = 'https://fetchmeals-xzur6xnjsa-uc.a.run.app/fetchMeals';
     const profileStorageKey = 'mealKnowledgeProfile';
@@ -18,18 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const feedbackEl = document.getElementById('weekly-feedback');
     const feedbackWeekEl = document.getElementById('feedback-week');
     const knowledgeUpdatedEl = document.getElementById('knowledge-updated');
-    const reviewCountEl = document.getElementById('knowledge-review-count');
-    const reviewListEl = document.getElementById('knowledge-review-list');
-    const reviewMoreButton = document.getElementById('knowledge-review-more');
-    const connectDialog = document.getElementById('knowledge-connect-dialog');
-    const connectForm = document.getElementById('knowledge-connect-form');
-    const connectTitle = document.getElementById('knowledge-connect-title');
-    const connectMealSelect = document.getElementById('knowledge-connect-meal');
-    const connectCloseButton = document.getElementById('knowledge-connect-close');
     let knowledge = null;
-    let reviewData = {items: [], meals: [], summary: {}};
-    let visibleReviewCount = 10;
-    let connectingItem = null;
 
     function parseList(value) {
         return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
@@ -66,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(fetchKnowledgeUrl, {mode: 'cors'});
             if (!response.ok) throw new Error('Knowledge endpoint is not available.');
             knowledge = await response.json();
-            knowledgeUpdatedEl.textContent = 'Synced with the family knowledge base';
+            knowledgeUpdatedEl.textContent = 'Learned automatically from past weeks';
         } catch (error) {
             console.warn('Using local knowledge fallback', error);
             const [planResponse, mealsResponse] = await Promise.all([
@@ -93,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
         populateProfile(knowledge.profile);
         renderInsights(knowledge.insights || {});
         renderFeedback();
-        loadReviewQueue();
     }
 
     function makeStat(value, label) {
@@ -110,9 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderInsights(insights) {
         statsEl.innerHTML = '';
         statsEl.append(
-            makeStat(insights.catalogMeals || 0, 'saved meals'),
-            makeStat(insights.observedMealEvents || 0, 'unique observations'),
-            makeStat(insights.catalogMatchedEvents || 0, 'linked to recipes')
+            makeStat(insights.observedMealEvents || 0, 'past meal uses'),
+            makeStat((insights.learnedMeals || []).length, 'meals learned'),
+            makeStat((insights.inferredRoutines || []).length, 'recurring patterns')
         );
         renderInsightList(frequentMealsEl, insights.learnedMeals || [], (item) => `${item.name} · ${item.count}×`);
         renderInsightList(inferredRoutinesEl, insights.inferredRoutines || [], (item) => (
@@ -219,148 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadReviewQueue() {
-        reviewCountEl.textContent = 'Loading...';
-        try {
-            const response = await fetch(fetchReviewUrl, {mode: 'cors'});
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok || !Array.isArray(data.items)) {
-                throw new Error(data.error || 'Could not load unmatched meals.');
-            }
-            reviewData = data;
-            renderReviewQueue();
-        } catch (error) {
-            console.error(error);
-            reviewCountEl.textContent = 'Could not load';
-            reviewListEl.innerHTML = '';
-            const note = document.createElement('p');
-            note.className = 'muted';
-            note.textContent = 'The review service is not available yet.';
-            reviewListEl.appendChild(note);
-        }
-    }
-
-    function renderReviewQueue() {
-        const items = reviewData.items || [];
-        reviewCountEl.textContent = `${items.length} to review`;
-        reviewListEl.innerHTML = '';
-        items.slice(0, visibleReviewCount).forEach((item) => reviewListEl.appendChild(buildReviewCard(item)));
-        reviewMoreButton.hidden = items.length <= visibleReviewCount;
-        if (!items.length) {
-            const complete = document.createElement('div');
-            complete.className = 'knowledge-review-complete';
-            complete.textContent = 'Everything is reviewed. New unmatched entries will appear here automatically.';
-            reviewListEl.appendChild(complete);
-        }
-    }
-
-    function buildReviewCard(item) {
-        const card = document.createElement('article');
-        card.className = 'knowledge-review-card';
-        card.dataset.mealKey = item.mealKey;
-
-        const head = document.createElement('div');
-        head.className = 'knowledge-review-head';
-        const titleWrap = document.createElement('div');
-        const title = document.createElement('h3');
-        title.textContent = item.displayName;
-        const context = document.createElement('p');
-        context.className = 'muted';
-        const slotText = (item.slots || []).map(formatSlot).join(', ');
-        context.textContent = `${item.count} plan${item.count === 1 ? '' : 's'}${slotText ? ` · ${slotText}` : ''}`;
-        titleWrap.append(title, context);
-        const badge = document.createElement('span');
-        badge.className = 'knowledge-review-badge';
-        badge.textContent = suggestedActionLabel(item.suggestedClassification);
-        head.append(titleWrap, badge);
-
-        const actions = document.createElement('div');
-        actions.className = 'knowledge-review-actions';
-        actions.append(
-            reviewAction('Connect Meal', 'connect', true),
-            reviewAction('Eating Out', 'eatingOut'),
-            reviewAction('Event', 'event'),
-            reviewAction('Create Meal', 'create'),
-            reviewAction('Ignore', 'ignore')
-        );
-        card.append(head, actions);
-        return card;
-    }
-
-    function suggestedActionLabel(classification) {
-        return ({eatingOut: 'Likely eating out', event: 'Likely routine'})[classification] || 'Unmatched meal';
-    }
-
-    function reviewAction(label, action, primary = false) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = `knowledge-review-action${primary ? ' primary' : ''}`;
-        button.dataset.reviewAction = action;
-        button.textContent = label;
-        return button;
-    }
-
-    function itemForCard(card) {
-        return reviewData.items.find((item) => item.mealKey === card.dataset.mealKey);
-    }
-
-    function openConnectDialog(item) {
-        connectingItem = item;
-        connectTitle.textContent = `Connect “${item.displayName}”`;
-        connectMealSelect.innerHTML = '<option value="">Select a saved meal</option>';
-        (reviewData.meals || []).forEach((meal) => {
-            const option = document.createElement('option');
-            option.value = meal.id;
-            option.textContent = meal.name;
-            connectMealSelect.appendChild(option);
-        });
-        if (typeof connectDialog.showModal === 'function') connectDialog.showModal();
-        else connectDialog.setAttribute('open', 'open');
-    }
-
-    function closeConnectDialog() {
-        connectingItem = null;
-        if (typeof connectDialog.close === 'function') connectDialog.close();
-        else connectDialog.removeAttribute('open');
-    }
-
-    async function resolveReviewItem(item, resolution) {
-        const response = await fetch(resolveKnowledgeUrl, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({mealKey: item.mealKey, displayName: item.displayName, ...resolution}),
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'Could not save this decision.');
-        reviewData.items = reviewData.items.filter((candidate) => candidate.mealKey !== item.mealKey);
-        renderReviewQueue();
-        showMessage('Meal knowledge updated.');
-    }
-
-    async function handleReviewAction(button, card) {
-        const item = itemForCard(card);
-        if (!item) return;
-        const action = button.dataset.reviewAction;
-        if (action === 'connect') {
-            openConnectDialog(item);
-            return;
-        }
-        if (action === 'create') {
-            const params = new URLSearchParams({name: item.displayName, return: 'knowledge.html'});
-            window.location.href = `add-meal.html?${params.toString()}`;
-            return;
-        }
-        button.disabled = true;
-        try {
-            if (action === 'ignore') await resolveReviewItem(item, {action: 'ignore'});
-            else await resolveReviewItem(item, {action: 'classify', classification: action});
-        } catch (error) {
-            console.error(error);
-            showMessage(error.message || 'Could not update meal knowledge.');
-            button.disabled = false;
-        }
-    }
-
     function makeRatingButton(label, value, currentRating) {
         const button = document.createElement('button');
         button.type = 'button';
@@ -447,36 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
             saveFeedback(card);
         }
     });
-    reviewListEl.addEventListener('click', (event) => {
-        const button = event.target.closest('[data-review-action]');
-        const card = event.target.closest('.knowledge-review-card');
-        if (button && card) handleReviewAction(button, card);
-    });
-    reviewMoreButton.addEventListener('click', () => {
-        visibleReviewCount += 10;
-        renderReviewQueue();
-    });
-    connectCloseButton.addEventListener('click', closeConnectDialog);
-    connectForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        if (!connectingItem || !connectMealSelect.value) return;
-        const item = connectingItem;
-        const submitButton = connectForm.querySelector('[type="submit"]');
-        submitButton.disabled = true;
-        try {
-            await resolveReviewItem(item, {action: 'connect', mealId: connectMealSelect.value});
-            closeConnectDialog();
-        } catch (error) {
-            console.error(error);
-            showMessage(error.message || 'Could not connect this meal.');
-        } finally {
-            submitButton.disabled = false;
-        }
-    });
-    connectDialog.addEventListener('click', (event) => {
-        if (event.target === connectDialog) closeConnectDialog();
-    });
-
     loadKnowledge().catch((error) => {
         console.error(error);
         knowledgeUpdatedEl.textContent = 'Could not load knowledge';

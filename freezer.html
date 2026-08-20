@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freezer Leftovers</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <div class="container planner-shell freezer-shell">
+        <header class="hero">
+            <div class="hero-text">
+                <p class="eyebrow">Ready for another night</p>
+                <h1>Freezer Leftovers</h1>
+                <p class="subhead">Track the meals and portions already waiting in the freezer.</p>
+            </div>
+            <div class="nav-actions">
+                <a class="link-button" href="index.html">Dashboard</a>
+                <a class="link-button secondary" href="planner.html">Planner</a>
+                <a class="link-button secondary" href="meals.html">Meals</a>
+                <a class="link-button secondary" href="knowledge.html">Knowledge</a>
+                <a class="link-button secondary" href="necessities.html">Necessities</a>
+                <a class="link-button secondary" href="groceries.html">Groceries</a>
+            </div>
+        </header>
+
+        <div id="message" class="toast" role="status" aria-live="polite"></div>
+
+        <main class="freezer-layout">
+            <section class="mini-panel freezer-add-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Add to inventory</p>
+                        <h2>Freeze a meal</h2>
+                    </div>
+                </div>
+                <form id="freezer-form" class="freezer-form">
+                    <label class="form-row freezer-meal-field" for="freezer-meal-name">
+                        <span>Meal</span>
+                        <input id="freezer-meal-name" name="mealName" list="saved-meal-options" placeholder="Spaghetti" autocomplete="off" required>
+                    </label>
+                    <label class="form-row freezer-date-field" for="freezer-date">
+                        <span>Date frozen</span>
+                        <input id="freezer-date" name="frozenOn" type="date" required>
+                    </label>
+                    <label class="form-row freezer-quantity-field" for="freezer-quantity">
+                        <span>Portions</span>
+                        <input id="freezer-quantity" name="quantity" type="number" inputmode="numeric" min="1" max="99" value="1" required>
+                    </label>
+                    <button class="primary-btn freezer-add-button" type="submit">Add to Freezer</button>
+                </form>
+                <datalist id="saved-meal-options"></datalist>
+            </section>
+
+            <section class="mini-panel freezer-inventory-panel">
+                <div class="panel-head freezer-inventory-head">
+                    <div>
+                        <p class="eyebrow">On hand</p>
+                        <h2>Freezer inventory</h2>
+                    </div>
+                    <span id="freezer-summary" class="card-chip">Loading…</span>
+                </div>
+                <div id="freezer-list" class="freezer-list" aria-live="polite"></div>
+            </section>
+        </main>
+    </div>
+    <script src="./nav.js"></script>
+    <script src="./freezer.js"></script>
+</body>
+</html>

@@ -23,6 +23,10 @@ Standalone necessities live in their own collection and use the same cart metada
 
 Necessities marked `includeInCart` are merged into the grocery list and the Giant Eagle Playwright runner automatically.
 
+## Freezer leftovers
+
+The Freezer screen stores prepared meals separately from the planning knowledge catalog. Each `freezerLeftovers` record tracks a meal name, date frozen, and the number of portions available. Batches of the same meal frozen on different dates remain separate and cards are ordered oldest first. Adding an existing meal and date increases that batch's quantity; using a portion decreases it; and the record is removed automatically when its quantity reaches zero. The mobile navigation collapses into an accessible hamburger menu on every screen.
+
 ## Planning knowledge
 
 The Knowledge page builds a durable family planning profile from three Firestore sources:
@@ -33,9 +37,9 @@ The Knowledge page builds a durable family planning profile from three Firestore
 
 Existing `mealHistory` records are read as deduplicated observations so older planning activity can contribute learned patterns. Weekly feedback updates a matched saved meal's `lastHad` value when it is marked cooked. The existing `weekStart` and current/next plan date model is unchanged.
 
-The Knowledge review inbox ranks unmatched historical names by frequency. A reviewer can connect an alias to a saved meal, classify it as eating out or a recurring event, ignore it, or open the Add Meal form with the name prefilled. Leftover entries are derived from the original dinner and excluded from the knowledge catalog. Resolutions live in `knowledgeMealItems`, and connected aliases backfill matching `mealEvents` records.
+Knowledge is learned automatically from historical plan usage and weekly feedback; there is no manual add-or-connect review workflow. Leftover entries are derived from the original dinner and excluded from learned meal patterns.
 
-The planner's Help Me Plan flow uses this resolved knowledge, explicit family preferences, recurring routines, busy days, eating-out days, and cooking-night limits to create a reviewable next-week draft. When it schedules leftovers, it repeats a dinner already planned earlier in the week (for example, `Spaghetti leftovers`) instead of looking for a generic leftovers meal. The draft remains local until the user applies it and saves the week.
+The planner's Help Me Plan flow uses these past observations, explicit family preferences, recurring routines, selected leftover nights, and eating-out nights to create a reviewable next-week draft. A selected leftover night repeats the most recent earlier dinner (for example, `Spaghetti leftovers`) instead of looking for a generic leftovers meal. The draft remains local until the user applies it and saves the week.
 
 Deploy the Functions project before expecting Knowledge data to sync across devices. Until those endpoints are deployed, the Knowledge page keeps profile and feedback edits in local browser storage as a preview fallback.
 
