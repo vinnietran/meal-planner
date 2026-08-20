@@ -13,12 +13,13 @@
             <div class="hero-text">
                 <p class="eyebrow">Teach the planner</p>
                 <h1>Planning Knowledge</h1>
-                <p class="subhead">Save family preferences and quickly record what actually worked each week.</p>
+                <p class="subhead">The planner learns automatically from past weeks. Add family preferences and record what actually worked.</p>
             </div>
             <div class="nav-actions">
                 <a class="link-button" href="planner.html">Planner</a>
                 <a class="link-button secondary" href="index.html">Dashboard</a>
                 <a class="link-button secondary" href="meals.html">Meals</a>
+                <a class="link-button secondary" href="freezer.html">Freezer</a>
                 <a class="link-button secondary" href="groceries.html">Groceries</a>
             </div>
         </header>
@@ -91,7 +92,7 @@
                         <p class="eyebrow">What the planner knows</p>
                         <h2>Learned patterns</h2>
                     </div>
-                    <small id="knowledge-updated" class="muted">Loading...</small>
+                    <small id="knowledge-updated" class="muted">Loading past usage...</small>
                 </div>
                 <div id="knowledge-stats" class="knowledge-stats" aria-live="polite"></div>
                 <div class="knowledge-insight-grid">
@@ -104,19 +105,6 @@
                         <div id="inferred-routines" class="knowledge-chip-list"></div>
                     </div>
                 </div>
-            </section>
-
-            <section class="mini-panel knowledge-review-panel">
-                <div class="panel-head">
-                    <div>
-                        <p class="eyebrow">Improve future plans</p>
-                        <h2>Review Meal Knowledge</h2>
-                    </div>
-                    <small id="knowledge-review-count" class="muted">Loading...</small>
-                </div>
-                <p class="helper-note">Start with the most frequent entries. Each decision improves matching, suggestions, and grocery planning.</p>
-                <div id="knowledge-review-list" class="knowledge-review-list"></div>
-                <button id="knowledge-review-more" class="ghost-btn knowledge-review-more" type="button" hidden>Show More</button>
             </section>
 
             <section class="mini-panel">
@@ -132,23 +120,7 @@
             </section>
         </main>
     </div>
-    <dialog id="knowledge-connect-dialog" class="knowledge-connect-dialog">
-        <form id="knowledge-connect-form" class="knowledge-connect-shell">
-            <div class="planning-assistant-head">
-                <div>
-                    <p class="eyebrow">Connect an alias</p>
-                    <h2 id="knowledge-connect-title">Connect meal</h2>
-                </div>
-                <button id="knowledge-connect-close" type="button" class="ghost-btn">Close</button>
-            </div>
-            <p class="helper-note">Choose the saved recipe this name represents. Future history will use the saved meal automatically.</p>
-            <label class="form-row">
-                <span>Saved meal</span>
-                <select id="knowledge-connect-meal" required></select>
-            </label>
-            <button type="submit" class="primary-btn knowledge-save-button">Connect Meal</button>
-        </form>
-    </dialog>
+    <script src="./nav.js"></script>
     <script src="./knowledge.js"></script>
 </body>
 </html>

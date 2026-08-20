@@ -18,8 +18,8 @@
             <div class="nav-actions">
                 <a class="link-button" href="index.html">View Dashboard</a>
                 <a class="link-button secondary" href="meals.html">Meals</a>
-                <a class="link-button secondary" href="add-meal.html">Add Meal</a>
                 <a class="link-button secondary" href="knowledge.html">Knowledge</a>
+                <a class="link-button secondary" href="freezer.html">Freezer</a>
                 <a class="link-button secondary" href="necessities.html">Necessities</a>
                 <a class="link-button secondary" href="groceries.html">Groceries</a>
                 <!-- <div class="pill-stack">
@@ -95,9 +95,10 @@
             <p class="helper-note">Choose what next week looks like. The draft uses saved meals, recurring routines, and past planning patterns.</p>
 
             <fieldset class="assistant-fieldset">
-                <legend>Busy days</legend>
-                <div class="assistant-day-options" data-option-group="busyDays">
-                    <label><input type="checkbox" value="0"> Mon</label>
+                <legend>Leftover nights</legend>
+                <p class="helper-note">Choose nights that should repeat the most recent earlier dinner.</p>
+                <div class="assistant-day-options" data-option-group="leftoverDays">
+                    <label class="assistant-day-disabled" title="Monday has no earlier dinner in this weekly draft"><input type="checkbox" value="0" disabled> Mon</label>
                     <label><input type="checkbox" value="1"> Tue</label>
                     <label><input type="checkbox" value="2"> Wed</label>
                     <label><input type="checkbox" value="3"> Thu</label>
@@ -121,20 +122,6 @@
             </fieldset>
 
             <div class="assistant-settings">
-                <label class="form-row">
-                    <span>Maximum cooking nights</span>
-                    <select id="assistant-max-cooking-nights">
-                        <option value="3">3 nights</option>
-                        <option value="4">4 nights</option>
-                        <option value="5" selected>5 nights</option>
-                        <option value="6">6 nights</option>
-                        <option value="7">7 nights</option>
-                    </select>
-                </label>
-                <label class="assistant-toggle">
-                    <input id="assistant-use-leftovers" type="checkbox" checked>
-                    <span>Use leftovers to reduce cooking</span>
-                </label>
                 <label class="assistant-toggle">
                     <input id="assistant-preserve-existing" type="checkbox" checked>
                     <span>Keep meals already entered for next week</span>
@@ -147,6 +134,7 @@
             <button id="planning-assistant-apply" type="button" class="primary-btn assistant-apply" hidden>Use This Draft</button>
         </form>
     </dialog>
+    <script src="./nav.js"></script>
     <script src="./planner.js"></script>
 </body>
 </html>

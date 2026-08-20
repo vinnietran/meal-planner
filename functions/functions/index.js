@@ -129,6 +129,19 @@ function normalizeInteger(value, {min = 0, max = Number.MAX_SAFE_INTEGER, fallba
   return Math.min(max, Math.max(min, parsed));
 }
 
+function normalizeISODate(value) {
+  const candidate = normalizeString(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(candidate)) return "";
+  const date = new Date(`${candidate}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== candidate) return "";
+  return candidate;
+}
+
+function todayISO(timeZone = PROJECT_TIME_ZONE) {
+  const {year, month, day} = getZonedParts(new Date(), timeZone);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 function mealEventId(weekStart, dayIndex, slot) {
   return `${weekStart}_${dayIndex}_${slot}`.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
@@ -600,6 +613,96 @@ exports.fetchNecessities = onRequest(async (req, res) => {
   return res.status(200).json(result);
 });
 
+exports.addFreezerLeftover = onRequest(async (req, res) => {
+  if (!withCors(req, res)) return;
+  if (req.method !== "POST") {
+    return res.status(405).json({error: "Method not allowed"});
+  }
+
+  const name = normalizeString(req.body?.name);
+  const quantity = normalizeInteger(req.body?.quantity, {min: 1, max: 99, fallback: 1});
+  const frozenOn = normalizeISODate(req.body?.frozenOn) || todayISO();
+  const mealKey = normalizeMealKey(name);
+  if (!name || !mealKey) {
+    return res.status(400).json({error: "name is required"});
+  }
+
+  const leftoverRef = db.collection("freezerLeftovers").doc(knowledgeItemId(`${mealKey}_${frozenOn}`));
+  const result = await db.runTransaction(async (transaction) => {
+    const existing = await transaction.get(leftoverRef);
+    const currentQuantity = existing.exists ? normalizeInteger(existing.data().quantity, {min: 0, max: 999}) : 0;
+    const nextQuantity = Math.min(999, currentQuantity + quantity);
+    const now = FieldValue.serverTimestamp();
+    transaction.set(leftoverRef, {
+      name,
+      mealKey,
+      frozenOn,
+      quantity: nextQuantity,
+      createdAt: existing.exists ? existing.data().createdAt || now : now,
+      updatedAt: now,
+    }, {merge: true});
+    return {id: leftoverRef.id, name, frozenOn, quantity: nextQuantity};
+  });
+
+  return res.status(201).json(result);
+});
+
+exports.fetchFreezerLeftovers = onRequest(async (req, res) => {
+  if (!withCors(req, res)) return;
+  if (req.method !== "GET") {
+    return res.status(405).json({error: "Method not allowed"});
+  }
+
+  const snapshot = await db.collection("freezerLeftovers").orderBy("updatedAt", "desc").get();
+  const result = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    const updatedAt = data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : null;
+    return {
+      id: doc.id,
+      name: data.name,
+      frozenOn: normalizeISODate(data.frozenOn) || updatedAt?.slice(0, 10) || null,
+      quantity: normalizeInteger(data.quantity, {min: 0, max: 999}),
+      updatedAt,
+    };
+  }).filter((item) => item.name && item.quantity > 0)
+    .sort((left, right) => {
+      const dateComparison = (left.frozenOn || "9999-12-31").localeCompare(right.frozenOn || "9999-12-31");
+      return dateComparison || left.name.localeCompare(right.name);
+    });
+
+  return res.status(200).json(result);
+});
+
+exports.useFreezerLeftover = onRequest(async (req, res) => {
+  if (!withCors(req, res)) return;
+  if (req.method !== "POST") {
+    return res.status(405).json({error: "Method not allowed"});
+  }
+
+  const id = normalizeString(req.body?.id);
+  const useQuantity = normalizeInteger(req.body?.quantity, {min: 1, max: 99, fallback: 1});
+  const removeAll = req.body?.removeAll === true;
+  if (!id || id !== knowledgeItemId(id)) {
+    return res.status(400).json({error: "valid id is required"});
+  }
+
+  const leftoverRef = db.collection("freezerLeftovers").doc(id);
+  const result = await db.runTransaction(async (transaction) => {
+    const existing = await transaction.get(leftoverRef);
+    if (!existing.exists) return {id, removed: true, quantity: 0};
+    const currentQuantity = normalizeInteger(existing.data().quantity, {min: 0, max: 999});
+    const nextQuantity = removeAll ? 0 : Math.max(0, currentQuantity - useQuantity);
+    if (nextQuantity === 0) {
+      transaction.delete(leftoverRef);
+      return {id, removed: true, quantity: 0};
+    }
+    transaction.update(leftoverRef, {quantity: nextQuantity, updatedAt: FieldValue.serverTimestamp()});
+    return {id, removed: false, quantity: nextQuantity};
+  });
+
+  return res.status(200).json(result);
+});
+
 exports.saveMealPlan = onRequest(async (req, res) => {
   if (!withCors(req, res)) return;
   if (req.method !== "POST") {
@@ -1002,10 +1105,12 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
   }
 
   const body = req.body || {};
-  const busyDays = new Set(normalizeArray(body.busyDays).map(Number).filter((day) => day >= 0 && day <= 6));
+  const explicitLeftoverDays = Array.isArray(body.leftoverDays);
+  const leftoverDays = new Set(normalizeArray(body.leftoverDays).map(Number).filter((day) => day >= 1 && day <= 6));
+  const legacyBusyDays = new Set(normalizeArray(body.busyDays).map(Number).filter((day) => day >= 0 && day <= 6));
   const eatingOutDays = new Set(normalizeArray(body.eatingOutDays).map(Number).filter((day) => day >= 0 && day <= 6));
   const preserveExisting = body.preserveExisting !== false;
-  const useLeftovers = body.useLeftovers !== false;
+  const useLeftovers = explicitLeftoverDays || body.useLeftovers !== false;
 
   const [profileSnap, mealsSnap, currentSnap, nextSnap, eventSnap, legacyHistorySnap, resolutionSnap] = await Promise.all([
     db.collection("knowledge").doc("household").get(),
@@ -1119,7 +1224,9 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
     const nextDay = {...dayEntry};
     KNOWLEDGE_SLOTS.filter((slot) => slot !== "dinner").forEach((slot) => {
       if (preserveExisting && getPlanSlotValue(nextDay, slot)) return;
-      const suggestion = pickCandidate(slot, dayIndex, {preferEasy: busyDays.has(dayIndex)});
+      const suggestion = pickCandidate(slot, dayIndex, {
+        preferEasy: !explicitLeftoverDays && legacyBusyDays.has(dayIndex),
+      });
       if (!suggestion) return;
       nextDay[slot] = suggestion.mealName;
       usedKeys.add(suggestion.mealKey);
@@ -1128,9 +1235,7 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
 
     const existingDinner = getPlanSlotValue(nextDay, "dinner");
     if (preserveExisting && existingDinner) {
-      if (isLeftoverMealName(existingDinner)) {
-        leftoverSource = "";
-      } else if (!isEatingOutMealName(existingDinner)) {
+      if (!isLeftoverMealName(existingDinner) && !isEatingOutMealName(existingDinner)) {
         leftoverSource = existingDinner;
         cookingNights += 1;
       }
@@ -1143,25 +1248,30 @@ exports.suggestMealPlan = onRequest(async (req, res) => {
       draft[dayIndex] = nextDay;
       return;
     }
-    const shouldUseLeftovers = useLeftovers && leftoverSource &&
-      (busyDays.has(dayIndex) || cookingNights >= maxCookingNights);
+    const isScheduledLeftoverDay = explicitLeftoverDays && leftoverDays.has(dayIndex);
+    const shouldUseLeftovers = useLeftovers && leftoverSource && (explicitLeftoverDays
+      ? isScheduledLeftoverDay
+      : legacyBusyDays.has(dayIndex) || cookingNights >= maxCookingNights);
     if (shouldUseLeftovers) {
       nextDay.dinner = `${leftoverSource} leftovers`;
       reasons.push({
         dayIndex,
         slot: "dinner",
-        reason: busyDays.has(dayIndex)
-          ? `Uses leftovers from an earlier dinner on a busy ${WEEK_DAYS[dayIndex]}`
-          : "Uses an earlier dinner again to reduce cooking",
+        reason: isScheduledLeftoverDay
+          ? `Scheduled ${WEEK_DAYS[dayIndex]} as a leftovers night`
+          : legacyBusyDays.has(dayIndex)
+            ? `Uses leftovers from an earlier dinner on a busy ${WEEK_DAYS[dayIndex]}`
+            : "Uses an earlier dinner again to reduce cooking",
       });
-      leftoverSource = "";
       draft[dayIndex] = nextDay;
       return;
     }
     const dinner = pickCandidate("dinner", dayIndex, {
       avoidRecent: true,
-      preferEasy: busyDays.has(dayIndex),
-      preferLeftovers: useLeftovers && busyDays.has(dayIndex + 1),
+      preferEasy: !explicitLeftoverDays && legacyBusyDays.has(dayIndex),
+      preferLeftovers: useLeftovers && (explicitLeftoverDays
+        ? leftoverDays.has(dayIndex + 1)
+        : legacyBusyDays.has(dayIndex + 1)),
     });
     if (dinner) {
       nextDay.dinner = dinner.mealName;

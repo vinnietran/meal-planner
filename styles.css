@@ -522,6 +522,11 @@ button:disabled {
     cursor: pointer;
 }
 
+.assistant-day-options .assistant-day-disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
 .assistant-day-options input,
 .assistant-toggle input {
     width: 18px;
@@ -1499,5 +1504,231 @@ button:disabled {
 
     .assistant-day-options {
         grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+}
+
+.nav-toggle {
+    display: none;
+}
+
+.freezer-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.5fr);
+    gap: 14px;
+    margin-top: 14px;
+    align-items: start;
+}
+
+.freezer-layout h2 {
+    margin: 4px 0 8px;
+    font-size: 20px;
+}
+
+.freezer-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 100px;
+    gap: 12px;
+    align-items: end;
+}
+
+.freezer-meal-field {
+    grid-column: 1 / -1;
+}
+
+.freezer-form .form-row > span {
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.freezer-add-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+}
+
+.freezer-inventory-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.freezer-inventory-head .card-chip {
+    white-space: nowrap;
+}
+
+.freezer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.freezer-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--panel-soft);
+}
+
+.freezer-card-details {
+    min-width: 0;
+}
+
+.freezer-card h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+}
+
+.freezer-portion-count {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.freezer-date {
+    display: block;
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.freezer-card-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+}
+
+.freezer-card-actions .freezer-action {
+    width: auto;
+    max-width: none;
+    min-height: 42px;
+    padding: 9px 12px;
+    font-size: 13px;
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.freezer-empty {
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px;
+    border: 1px dashed rgba(125, 216, 255, 0.24);
+    border-radius: 13px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.freezer-empty strong {
+    color: var(--text);
+}
+
+@media (max-width: 860px) {
+    .freezer-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .hero.mobile-nav-ready {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 48px;
+        align-items: start;
+    }
+
+    .hero.mobile-nav-ready .hero-text {
+        min-width: 0;
+    }
+
+    .nav-toggle {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        width: 48px;
+        height: 48px;
+        max-width: 48px;
+        padding: 0;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: none;
+    }
+
+    .nav-toggle span {
+        width: 21px;
+        height: 2px;
+        border-radius: 999px;
+        background: var(--text);
+        transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .nav-open .nav-toggle span:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+    }
+
+    .nav-open .nav-toggle span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .nav-open .nav-toggle span:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
+    }
+
+    .hero.mobile-nav-ready .nav-actions {
+        display: none;
+        grid-column: 1 / -1;
+        width: 100%;
+        padding: 10px;
+        overflow: visible;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        background: rgba(5, 8, 17, 0.82);
+    }
+
+    .hero.mobile-nav-ready.nav-open .nav-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .hero.mobile-nav-ready .nav-actions .link-button {
+        width: 100%;
+        min-width: 0;
+        min-height: 46px;
+        padding: 10px 8px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .freezer-form {
+        grid-template-columns: minmax(0, 1fr) 92px;
+    }
+
+    .freezer-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .freezer-card-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .freezer-card-actions .freezer-action {
+        width: 100%;
+    }
+
+    .freezer-card-actions .danger-btn {
+        grid-column: 1 / -1;
     }
 }
