@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const librarySearch = document.getElementById('library-search');
     const tagFiltersEl = document.getElementById('tag-filters');
     const savedMealList = document.getElementById('saved-meal-list');
+    const libraryPanel = document.querySelector('.planner-library-panel');
+    const libraryToggle = document.getElementById('planner-library-toggle');
     const nextDayButton = document.getElementById('next-day');
     const clearWeekButton = document.getElementById('clear-week');
     const saveWeekButton = document.getElementById('save-week');
@@ -211,6 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.textContent = day;
+            btn.dataset.shortLabel = day.slice(0, 3);
+            btn.setAttribute('aria-label', day);
             btn.className = 'day-tab';
             if (index === activeDayIndex) btn.classList.add('active');
             btn.addEventListener('click', () => {
@@ -280,12 +284,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const valueEl = document.createElement('div');
         valueEl.className = 'field-value';
         valueEl.setAttribute('contenteditable', 'true');
+        valueEl.setAttribute('role', 'textbox');
+        valueEl.setAttribute('aria-label', `${label} meal`);
+        valueEl.setAttribute('inputmode', 'text');
+        valueEl.dataset.placeholder = 'Tap to enter a meal';
         valueEl.dataset.key = key;
 
         const sidesKey = `${key}Sides`;
         const sidesEl = document.createElement('div');
         sidesEl.className = 'field-sides';
         sidesEl.setAttribute('contenteditable', 'true');
+        sidesEl.setAttribute('role', 'textbox');
+        sidesEl.setAttribute('aria-label', `${label} sides`);
+        sidesEl.setAttribute('inputmode', 'text');
         sidesEl.dataset.key = sidesKey;
         sidesEl.dataset.placeholder = 'Sides (comma separated, optional)';
         sidesEl.addEventListener('focus', () => {
@@ -472,6 +483,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function setLibraryExpanded(expanded) {
+        if (!libraryPanel || !libraryToggle) return;
+        libraryPanel.classList.toggle('library-collapsed', !expanded);
+        libraryToggle.setAttribute('aria-expanded', String(expanded));
+        libraryToggle.textContent = expanded ? 'Hide meals' : 'Show meals';
+    }
+
     function checkedDayValues(groupName) {
         return Array.from(assistantDialog.querySelectorAll(`[data-option-group="${groupName}"] input:checked`))
             .map((input) => input.value);
@@ -593,6 +611,12 @@ document.addEventListener('DOMContentLoaded', () => {
     clearWeekButton.addEventListener('click', clearWeek);
     nextDayButton.addEventListener('click', advanceDay);
     assistantOpenButton.addEventListener('click', openPlanningAssistant);
+    if (libraryToggle) {
+        setLibraryExpanded(!window.matchMedia('(max-width: 600px)').matches);
+        libraryToggle.addEventListener('click', () => {
+            setLibraryExpanded(libraryToggle.getAttribute('aria-expanded') !== 'true');
+        });
+    }
     assistantCloseButton.addEventListener('click', closePlanningAssistant);
     assistantForm.addEventListener('submit', generateAssistantDraft);
     assistantApplyButton.addEventListener('click', applyAssistantDraft);

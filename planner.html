@@ -54,19 +54,22 @@
             </main>
 
             <aside class="planner-aside">
-                <div class="mini-panel">
+                <div class="mini-panel planner-library-panel">
                     <div class="panel-head">
                         <div>
                             <p class="eyebrow">Saved meals</p>
                             <h3>Quick fill</h3>
                         </div>
-                        <small class="muted">Tap a meal to send it to the selected slot.</small>
+                        <button id="planner-library-toggle" class="ghost-btn planner-library-toggle" type="button" aria-expanded="false" aria-controls="planner-library-content">Show meals</button>
                     </div>
-                    <input type="text" id="library-search" class="library-search" placeholder="Filter saved meals...">
-                    <div id="tag-filters" class="filter-chips"></div>
-                    <div id="saved-meal-list" class="saved-meal-list"></div>
+                    <div id="planner-library-content" class="planner-library-content">
+                        <small class="muted">Select a meal field above, then tap a saved meal.</small>
+                        <input type="search" id="library-search" class="library-search" placeholder="Filter saved meals..." aria-label="Filter saved meals">
+                        <div id="tag-filters" class="filter-chips"></div>
+                        <div id="saved-meal-list" class="saved-meal-list"></div>
+                    </div>
                 </div>
-                <div class="mini-panel">
+                <div class="mini-panel planner-tips-panel">
                     <div class="panel-head">
                         <p class="eyebrow">Tips</p>
                         <h3>Faster planning</h3>

@@ -263,6 +263,12 @@ body {
     box-shadow: 0 0 0 3px rgba(76, 139, 255, 0.22);
 }
 
+.field-value:empty::before {
+    content: attr(data-placeholder);
+    color: var(--muted);
+    font-style: italic;
+}
+
 .field-sides {
     width: 100%;
     padding: 10px 12px;
@@ -677,6 +683,21 @@ button:disabled {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.planner-library-panel .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.planner-library-toggle {
+    display: none;
+}
+
+.planner-library-content {
+    margin-top: 8px;
 }
 
 .mini-panel {
@@ -1418,6 +1439,10 @@ button:disabled {
         border-radius: 14px;
     }
 
+    .planner-shell {
+        padding-bottom: 6px;
+    }
+
     .hero {
         gap: 12px;
         padding: 12px;
@@ -1444,29 +1469,68 @@ button:disabled {
         min-height: 44px;
     }
 
+    .week-switcher {
+        position: sticky;
+        top: 6px;
+        z-index: 8;
+        gap: 6px;
+        padding: 6px;
+        margin: 0 -2px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(5, 8, 17, 0.94);
+        backdrop-filter: blur(10px);
+    }
+
+    .week-tab {
+        padding: 10px 6px;
+        border-radius: 10px;
+        font-size: 13px;
+    }
+
     .day-switcher {
-        display: flex;
-        overflow-x: auto;
-        scroll-snap-type: x proximity;
-        padding: 3px 3px 7px;
-        scrollbar-width: thin;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
+        overflow: visible;
+        padding: 2px 0;
     }
 
     .day-tab {
-        flex: 0 0 92px;
-        scroll-snap-align: start;
+        min-width: 0;
+        width: 100%;
+        padding: 8px 1px;
+        border-radius: 9px;
+        font-size: 0;
+    }
+
+    .day-tab::after {
+        content: attr(data-short-label);
+        font-size: 11px;
+        letter-spacing: 0;
     }
 
     .day-card {
-        padding: 12px;
+        gap: 9px;
+        padding: 10px;
+        border-radius: 14px;
     }
 
     .section {
+        gap: 8px;
         padding: 10px;
     }
 
     .field-value {
-        min-height: 48px;
+        min-height: 50px;
+        padding: 13px 12px;
+        font-size: 16px;
+        cursor: text;
+    }
+
+    .field-sides {
+        min-height: 44px;
+        padding: 11px;
     }
 
     .planner-actions .ghost-btn {
@@ -1477,6 +1541,117 @@ button:disabled {
     .field { flex-direction: column; align-items: flex-start; }
     .field-label { min-width: auto; }
     .field-value { width: 100%; }
+
+    .assistant-launch {
+        min-height: 56px;
+        padding: 10px 12px;
+    }
+
+    .assistant-launch small {
+        display: none;
+    }
+
+    .planner-actions {
+        margin-top: 0;
+    }
+
+    .button-container {
+        position: sticky;
+        bottom: 6px;
+        z-index: 9;
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        gap: 8px;
+        margin: 4px -2px 0;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(5, 8, 17, 0.94);
+        backdrop-filter: blur(10px);
+    }
+
+    .button-container button {
+        width: 100%;
+        min-height: 48px;
+        max-width: none;
+        padding: 10px 8px;
+    }
+
+    .planner-library-toggle {
+        display: inline-flex;
+        min-height: 42px;
+        padding: 8px 12px;
+    }
+
+    .planner-library-panel.library-collapsed .planner-library-content {
+        display: none;
+    }
+
+    .planner-library-content {
+        margin-top: 10px;
+    }
+
+    .saved-meal-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-height: 280px;
+    }
+
+    .saved-meal-list .meal-chip {
+        width: 100%;
+        max-width: none;
+        min-height: 46px;
+        padding: 9px;
+    }
+
+    .planner-tips-panel {
+        display: none;
+    }
+
+    .planning-assistant-dialog {
+        width: 100vw;
+        height: 100dvh;
+        max-height: none;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+    }
+
+    .planning-assistant-shell {
+        min-height: 100%;
+        padding: 12px;
+    }
+
+    .planning-assistant-head {
+        position: sticky;
+        top: 0;
+        z-index: 4;
+        margin: -12px -12px 0;
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(13, 19, 33, 0.96);
+        backdrop-filter: blur(10px);
+    }
+
+    .assistant-day-options {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .assistant-preview-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .assistant-preview-actions {
+        align-items: stretch;
+        width: 100%;
+        text-align: left;
+    }
+
+    .assistant-swap {
+        width: 100%;
+        min-height: 42px;
+    }
 }
 
 @media (min-width: 700px) {
